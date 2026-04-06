@@ -22,7 +22,7 @@ app.use("/api", orderRoutes);
 app.use("/api", paymentRoutes);
 
 // ── Health Check ────────────────────────────────────────────────────────────
-app.get("/health", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Sylmar Hardware M-Pesa API", time: new Date() });
 });
 

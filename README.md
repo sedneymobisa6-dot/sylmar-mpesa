@@ -1,2 +1,0 @@
-# sylmar-mpesa
-sylmar-mpesa

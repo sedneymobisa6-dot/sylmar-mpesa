@@ -1,4 +1,4 @@
-require("dotenv").config();
+health("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -22,7 +22,7 @@ app.use("/api", orderRoutes);
 app.use("/api", paymentRoutes);
 
 // ── Health Check ────────────────────────────────────────────────────────────
-app.get("/api/health", (req, res) => {
+app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "Sylmar Hardware M-Pesa API", time: new Date() });
 });
 

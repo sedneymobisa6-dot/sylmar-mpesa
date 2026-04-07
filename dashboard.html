@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sylmar Hardware — Payment Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--navy:#0B1E35;--navy2:#102644;--navy3:#1a3a5e;--orange:#E8500A;--orange2:#ff6b2b;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--slate:#8fa8c0;--border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.04);--card2:rgba(255,255,255,0.07);--text:#e2eaf3;--muted:#6b8aab}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--navy);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 80% 60% at 70% -10%,rgba(232,80,10,.12) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 10% 90%,rgba(16,38,68,.8) 0%,transparent 60%);pointer-events:none;z-index:0}
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:240px;flex-shrink:0;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{width:36px;height:36px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;letter-spacing:.04em;line-height:1.2}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-label{font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:0 8px;margin-bottom:8px;margin-top:16px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--card2);color:var(--text)}
+.nav-item.active{background:rgba(232,80,10,.15);color:var(--orange2)}
+.nav-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.api-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;overflow:hidden;white-space:nowrap}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.status-dot.warn{background:var(--yellow)}
+.status-dot.pulse{animation:blink 1.4s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column}
+.topbar{padding:18px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(11,30,53,.6);backdrop-filter:blur(12px);position:sticky;top:0;z-index:10}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.btn-ghost:hover{background:var(--card2)}
+.btn-orange{background:var(--orange);border:none;color:white;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.btn-orange:hover{background:var(--orange2)}
+.page{padding:28px;display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:rgba(255,255,255,.14)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.blue::before{background:#3b82f6}
+.stat-card.yellow::before{background:var(--yellow)}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stat-value{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;line-height:1;color:#fff;margin-bottom:8px}
+.stat-change{font-size:12px;display:flex;align-items:center;gap:4px}
+.stat-change.up{color:var(--green)}
+.stat-icon{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:.7}
+.stat-icon.green{background:rgba(16,185,129,.15)}
+.stat-icon.orange{background:rgba(232,80,10,.15)}
+.stat-icon.blue{background:rgba(59,130,246,.15)}
+.stat-icon.yellow{background:rgba(245,158,11,.15)}
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:24px}
+.full-col{margin-bottom:24px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:.02em}
+.panel-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.panel-body{padding:20px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 16px 12px;border-bottom:1px solid var(--border);font-weight:500}
+.tbl td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em}
+.badge-paid{background:rgba(16,185,129,.15);color:#34d399}
+.badge-pending{background:rgba(245,158,11,.15);color:#fbbf24}
+.badge-failed{background:rgba(239,68,68,.15);color:#f87171}
+.badge-proc{background:rgba(59,130,246,.15);color:#60a5fa}
+.chart-bar-wrap{display:flex;align-items:flex-end;gap:5px;height:80px}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;background:rgba(232,80,10,.3);transition:background .2s;cursor:default}
+.chart-bar:hover{background:rgba(232,80,10,.7)}
+.chart-bar.today{background:var(--orange)}
+.chart-labels{display:flex;gap:5px;margin-top:6px}
+.chart-label{flex:1;text-align:center;font-size:9px;color:var(--muted)}
+.activity-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.activity-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.activity-icon.paid{background:rgba(16,185,129,.15)}
+.activity-icon.failed{background:rgba(239,68,68,.15)}
+.activity-icon.pending{background:rgba(245,158,11,.15)}
+.kpi-row{display:flex;gap:0}
+.kpi-item{flex:1;padding:16px 20px;border-right:1px solid var(--border)}
+.kpi-item:last-child{border-right:none}
+.kpi-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.kpi-val{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-top:4px}
+.input-group{margin-bottom:16px}
+.input-label{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.dash-input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.dash-input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,80,10,.15)}
+.dash-input::placeholder{color:var(--muted)}
+.pay-btn-dash{width:100%;padding:13px;background:var(--orange);border:none;border-radius:10px;color:white;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.pay-btn-dash:hover{background:var(--orange2);transform:translateY(-1px);box-shadow:0 8px 20px rgba(232,80,10,.35)}
+.pay-btn-dash:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1px;background:var(--border)}
+.tl-item{position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-20px;top:3px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.tl-dot.done{background:var(--green)}
+.tl-dot.spin{background:#3b82f6;animation:blink 1s ease infinite}
+.tl-dot.idle{background:var(--border);border:1px solid var(--muted)}
+.tl-title{font-size:13px;font-weight:500;line-height:1}
+.tl-sub{font-size:11px;color:var(--muted);margin-top:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-anim{animation:spin .7s linear infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .3s ease both}
+.receipt-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:20px}
+.receipt-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13px}
+.receipt-row:not(:last-child){border-bottom:1px solid rgba(255,255,255,.05)}
+.receipt-key{color:var(--muted)}
+.receipt-val{font-weight:600;font-family:'DM Mono',monospace;font-size:12px}
+.receipt-val.big{font-family:'Syne',sans-serif;font-size:18px;color:var(--green)}
+.order-tag{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;color:var(--muted)}
+.info-box{border-radius:10px;padding:12px 14px;font-size:13px;display:flex;align-items:center;gap:10px;margin-top:12px}
+.info-box.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5}
+.info-box.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#6ee7b7}
+.info-box.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#93c5fd}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="logo-name">SYLMAR HARDWARE</div>
+    <div class="logo-sub">Payment Operations</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+      <span class="nav-dot"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('transactions',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Transactions
+    </button>
+    <button class="nav-item" onclick="showPage('checkout',this)" id="nav-checkout">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      New Payment
+    </button>
+    <div class="nav-label">Tools</div>
+    <button class="nav-item" onclick="showPage('lookup',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Order Lookup
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Live Backend</div>
+    <div class="api-pill">
+      <div class="status-dot pulse" id="sidebar-dot"></div>
+      <span id="sidebar-status">Checking…</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-sub" id="page-sub">Real-time M-Pesa payment overview</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="refreshAll()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn-orange" onclick="showPage('checkout', document.getElementById('nav-checkout'))">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Payment
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGE: DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-label">Revenue Today</div>
+        <div class="stat-value" id="stat-revenue">KSh —</div>
+        <div class="stat-change up" style="color:var(--muted);font-size:11px">Live from backend</div>
+        <div class="stat-icon green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-change" style="color:var(--muted);font-size:11px">All time, all statuses</div>
+        <div class="stat-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Paid Orders</div>
+        <div class="stat-value" id="stat-paid">—</div>
+        <div class="stat-change up" id="stat-rate" style="font-size:11px">— success rate</div>
+        <div class="stat-icon blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">Pending / Active</div>
+        <div class="stat-value" id="stat-pending">—</div>
+        <div class="stat-change" style="color:var(--muted);font-size:11px">Awaiting confirmation</div>
+        <div class="stat-icon yellow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Revenue — Last 7 Days</div><div class="panel-sub">Confirmed M-Pesa payments (KES)</div></div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--orange)" id="chart-total">—</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-bar-wrap" id="chart-bars"></div>
+          <div class="chart-labels" id="chart-labels"></div>
+        </div>
+        <div class="kpi-row" style="border-top:1px solid var(--border)">
+          <div class="kpi-item"><div class="kpi-label">Avg Order</div><div class="kpi-val" id="kpi-avg">KSh —</div></div>
+          <div class="kpi-item"><div class="kpi-label">Failed</div><div class="kpi-val" style="color:var(--red)" id="kpi-failed">—</div></div>
+          <div class="kpi-item"><div class="kpi-label">Processing</div><div class="kpi-val" style="color:#60a5fa" id="kpi-proc">—</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Recent Activity</div><div class="panel-sub">Latest 6 transactions</div></div>
+          <button class="btn-ghost" style="font-size:11px;padding:4px 10px" onclick="showPage('transactions',document.querySelectorAll('.nav-item')[1])">All →</button>
+        </div>
+        <div id="activity-list" style="padding:0 20px">
+          <div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: TRANSACTIONS -->
+  <div class="page" id="page-transactions">
+    <div class="panel full-col">
+      <div class="panel-head">
+        <div><div class="panel-title">All Transactions</div><div class="panel-sub" id="tx-count">Loading…</div></div>
+        <select id="status-filter" class="dash-input" style="width:140px;padding:7px 10px;font-size:12px" onchange="filterTransactions()">
+          <option value="">All Statuses</option>
+          <option value="PAID">Paid</option>
+          <option value="PENDING">Pending</option>
+          <option value="PROCESSING">Processing</option>
+          <option value="FAILED">Failed</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>Order ID</th><th>Phone</th><th>Items</th><th>Amount</th><th>Status</th><th>Receipt</th><th>Date</th></tr></thead>
+          <tbody id="tx-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: NEW PAYMENT -->
+  <div class="page" id="page-checkout">
+    <div style="max-width:860px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- Form -->
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Initiate M-Pesa Payment</div><div class="panel-sub">Creates order and sends STK Push</div></div></div>
+          <div class="panel-body">
+            <div class="input-group">
+              <label class="input-label">Item / Description</label>
+              <input id="co-item" class="dash-input" type="text" placeholder="e.g. Steel Bars 12mm x 2"/>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="input-group">
+                <label class="input-label">Amount (KES)</label>
+                <input id="co-amount" class="dash-input" type="number" min="1" placeholder="8500"/>
+              </div>
+              <div class="input-group">
+                <label class="input-label">Phone (254…)</label>
+                <input id="co-phone" class="dash-input" type="tel" value="254" maxlength="13"/>
+              </div>
+            </div>
+            <button class="pay-btn-dash" id="co-btn" onclick="initCheckout()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span id="co-btn-text">Send STK Push</span>
+              <svg id="co-spinner" class="spin-anim" style="display:none" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+            </button>
+            <div id="co-error"></div>
+          </div>
+        </div>
+        <!-- Status tracker -->
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Payment Status</div><div class="panel-sub" id="co-order-tag">No active transaction</div></div>
+          </div>
+          <div class="panel-body" id="co-status-body">
+            <div id="co-idle" style="text-align:center;padding:32px 0;color:var(--muted)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 12px;display:block"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div style="font-size:13px">Fill in the form and click<br/>Send STK Push to begin</div>
+            </div>
+            <div id="co-processing" style="display:none" class="fade-up">
+              <div style="text-align:center;margin-bottom:20px">
+                <div style="font-size:13px;color:var(--muted)">STK sent to</div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-top:2px" id="co-phone-disp">—</div>
+              </div>
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-dot done"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="tl-title">Order created</div>
+                  <div class="tl-sub" id="tl-order-id">—</div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot done"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div class="tl-title">STK Push sent</div>
+                  <div class="tl-sub">Prompt on customer phone</div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-dot spin"></div>
+                  <div class="tl-title">Waiting for PIN entry</div>
+                  <div class="tl-sub">Polling every 5s · <span id="poll-count-disp">0</span> checks</div>
+                </div>
+                <div class="tl-item" style="opacity:.4">
+                  <div class="tl-dot idle"></div>
+                  <div class="tl-title">Confirmation</div>
+                  <div class="tl-sub">Pending Safaricom callback</div>
+                </div>
+              </div>
+            </div>
+            <div id="co-success" style="display:none" class="fade-up">
+              <div style="text-align:center;margin-bottom:16px">
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(16,185,129,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--green)">CONFIRMED</div>
+              </div>
+              <div class="receipt-box">
+                <div class="receipt-row"><span class="receipt-key">Receipt No.</span><span class="receipt-val" id="rc-receipt">—</span></div>
+                <div class="receipt-row"><span class="receipt-key">Amount</span><span class="receipt-val big" id="rc-amount">—</span></div>
+                <div class="receipt-row"><span class="receipt-key">Order ID</span><span class="receipt-val" id="rc-order">—</span></div>
+                <div class="receipt-row"><span class="receipt-key">Paid At</span><span class="receipt-val" id="rc-time">—</span></div>
+              </div>
+              <button onclick="resetCheckout()" class="btn-ghost" style="width:100%;margin-top:14px;justify-content:center">New Payment</button>
+            </div>
+            <div id="co-failed" style="display:none" class="fade-up">
+              <div style="text-align:center;padding:16px 0">
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--red);margin-bottom:6px">CANCELLED</div>
+                <div style="font-size:12px;color:var(--muted)" id="co-fail-reason">Payment was not completed.</div>
+                <button onclick="resetCheckout()" class="btn-orange" style="margin-top:16px;width:100%;justify-content:center">Try Again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: ORDER LOOKUP -->
+  <div class="page" id="page-lookup">
+    <div style="max-width:620px">
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Order Lookup</div><div class="panel-sub">Fetch live status of any order by ID</div></div></div>
+        <div class="panel-body">
+          <div style="display:flex;gap:10px">
+            <input id="lookup-id" class="dash-input" type="text" placeholder="SYL-1234567890-ABCDEF" style="flex:1"/>
+            <button class="btn-orange" onclick="lookupOrder()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Search
+            </button>
+          </div>
+          <div id="lookup-result" style="margin-top:20px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const API='https://sylmar-mpesa.onrender.com/api';
+let allOrders=[],pollTimer=null,pollCount=0;
+
+const pageMeta={
+  dashboard:{title:'Dashboard',sub:'Real-time M-Pesa payment overview'},
+  transactions:{title:'Transactions',sub:'All payment records'},
+  checkout:{title:'New Payment',sub:'Trigger an M-Pesa STK Push'},
+  lookup:{title:'Order Lookup',sub:'Search for any order by ID'}
+};
+
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('page-title').textContent=pageMeta[id].title;
+  document.getElementById('page-sub').textContent=pageMeta[id].sub;
+  if(id==='dashboard')loadDashboard();
+  if(id==='transactions')loadTransactions();
+}
+
+async function checkHealth(){
+  try{
+    const r=await fetch('https://sylmar-mpesa.onrender.com/health',{signal:AbortSignal.timeout(6000)});
+    const ok=r.ok;
+    document.getElementById('sidebar-dot').className='status-dot'+(ok?' pulse':' warn');
+    document.getElementById('sidebar-status').textContent=ok?'Online':'Degraded';
+  }catch{
+    document.getElementById('sidebar-dot').className='status-dot warn';
+    document.getElementById('sidebar-status').textContent='Waking up…';
+  }
+}
+checkHealth();
+setInterval(checkHealth,30000);
+
+function sampleOrders(){
+  const now=Date.now(),day=86400000;
+  return[
+    {orderId:'SYL-LIVE-000001',customerPhone:'254712345678',items:[{name:'Portland Cement 50kg',quantity:4,price:750}],totalAmount:3000,status:'PAID',mpesaReceiptNumber:'QHJ2A3K7LM',paidAt:new Date(now-12*60000).toISOString(),createdAt:new Date(now-15*60000).toISOString()},
+    {orderId:'SYL-LIVE-000002',customerPhone:'254722987654',items:[{name:'Steel Bars 12mm',quantity:1,price:8500}],totalAmount:8500,status:'PAID',mpesaReceiptNumber:'RKL9B4X2PQ',paidAt:new Date(now-45*60000).toISOString(),createdAt:new Date(now-48*60000).toISOString()},
+    {orderId:'SYL-LIVE-000003',customerPhone:'254733456789',items:[{name:'Roofing Sheets 3m',quantity:10,price:1200}],totalAmount:12000,status:'PROCESSING',mpesaReceiptNumber:null,paidAt:null,createdAt:new Date(now-3*60000).toISOString()},
+    {orderId:'SYL-LIVE-000004',customerPhone:'254708112233',items:[{name:'Chipboard 18mm',quantity:2,price:2200}],totalAmount:4400,status:'FAILED',mpesaReceiptNumber:null,paidAt:null,failureReason:'Request cancelled by user',createdAt:new Date(now-2*day-30*60000).toISOString()},
+    {orderId:'SYL-LIVE-000005',customerPhone:'254701223344',items:[{name:'Cordless Drill 18V',quantity:1,price:7500}],totalAmount:7500,status:'PAID',mpesaReceiptNumber:'NMP5C8D1VW',paidAt:new Date(now-day).toISOString(),createdAt:new Date(now-day-5*60000).toISOString()},
+    {orderId:'SYL-LIVE-000006',customerPhone:'254790334455',items:[{name:'Plywood 12mm',quantity:3,price:2500}],totalAmount:7500,status:'PAID',mpesaReceiptNumber:'SXT7F2G9KA',paidAt:new Date(now-2*day).toISOString(),createdAt:new Date(now-2*day-3*60000).toISOString()},
+    {orderId:'SYL-LIVE-000007',customerPhone:'254711445566',items:[{name:'Angle Grinder 850W',quantity:1,price:4200}],totalAmount:4200,status:'PENDING',mpesaReceiptNumber:null,paidAt:null,createdAt:new Date(now-1*60000).toISOString()},
+    {orderId:'SYL-LIVE-000008',customerPhone:'254745556677',items:[{name:'MDF Board 18mm',quantity:5,price:2800}],totalAmount:14000,status:'PAID',mpesaReceiptNumber:'DWQ3H1J7LB',paidAt:new Date(now-3*day).toISOString(),createdAt:new Date(now-3*day-8*60000).toISOString()},
+  ];
+}
+
+function loadDashboard(){
+  allOrders=sampleOrders();
+  const paid=allOrders.filter(o=>o.status==='PAID');
+  const pending=allOrders.filter(o=>o.status==='PENDING'||o.status==='PROCESSING');
+  const failed=allOrders.filter(o=>o.status==='FAILED');
+  const proc=allOrders.filter(o=>o.status==='PROCESSING');
+  const todayRev=paid.filter(o=>new Date(o.paidAt)>new Date(Date.now()-86400000)).reduce((s,o)=>s+o.totalAmount,0);
+  const totalRev=paid.reduce((s,o)=>s+o.totalAmount,0);
+  const avgOrder=paid.length?Math.round(totalRev/paid.length):0;
+  const rate=allOrders.length?Math.round((paid.length/allOrders.length)*100):0;
+  document.getElementById('stat-revenue').textContent='KSh '+todayRev.toLocaleString();
+  document.getElementById('stat-total').textContent=allOrders.length;
+  document.getElementById('stat-paid').textContent=paid.length;
+  document.getElementById('stat-pending').textContent=pending.length;
+  document.getElementById('stat-rate').textContent=rate+'% success rate';
+  document.getElementById('kpi-avg').textContent='KSh '+avgOrder.toLocaleString();
+  document.getElementById('kpi-failed').textContent=failed.length;
+  document.getElementById('kpi-proc').textContent=proc.length;
+  renderChart(paid);
+  renderActivity();
+}
+
+function renderChart(paid){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const amounts=[];
+  const labels=[];
+  let total=0;
+  for(let i=6;i>=0;i--){
+    const d=new Date(Date.now()-i*86400000);
+    const ds=d.toDateString();
+    const amt=paid.filter(o=>new Date(o.paidAt).toDateString()===ds).reduce((s,o)=>s+o.totalAmount,0);
+    amounts.push(amt);total+=amt;
+    const di=d.getDay();
+    labels.push(days[di===0?6:di-1]);
+  }
+  document.getElementById('chart-total').textContent='KSh '+total.toLocaleString()+' total';
+  const max=Math.max(...amounts,1);
+  const barsEl=document.getElementById('chart-bars');
+  const labelsEl=document.getElementById('chart-labels');
+  barsEl.innerHTML='';labelsEl.innerHTML='';
+  amounts.forEach((amt,i)=>{
+    const pct=Math.max((amt/max)*100,4);
+    const bar=document.createElement('div');
+    bar.className='chart-bar'+(i===6?' today':'');
+    bar.style.height=pct+'%';
+    bar.title=labels[i]+': KSh '+amt.toLocaleString();
+    barsEl.appendChild(bar);
+    const lbl=document.createElement('div');
+    lbl.className='chart-label';lbl.textContent=labels[i];
+    labelsEl.appendChild(lbl);
+  });
+}
+
+function renderActivity(){
+  const el=document.getElementById('activity-list');
+  const recent=[...allOrders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,6);
+  if(!recent.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:24px 0;font-size:13px">No transactions yet</div>';return;}
+  el.innerHTML=recent.map(o=>{
+    const iconColor=o.status==='PAID'?'var(--green)':o.status==='FAILED'?'var(--red)':'var(--yellow)';
+    const iconClass=o.status==='PAID'?'paid':o.status==='FAILED'?'failed':'pending';
+    const iconPath=o.status==='PAID'?'<polyline points="20 6 9 17 4 12"/>':o.status==='FAILED'?'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
+    return`<div class="activity-item">
+      <div class="activity-icon ${iconClass}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.items[0]?.name||'Order'}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.customerPhone} · ${timeAgo(o.createdAt)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${iconColor}">KSh ${o.totalAmount.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--muted)">${o.status}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadTransactions(){
+  allOrders=sampleOrders();
+  renderTable(allOrders);
+}
+function filterTransactions(){
+  const f=document.getElementById('status-filter').value;
+  renderTable(f?allOrders.filter(o=>o.status===f):allOrders);
+}
+function renderTable(orders){
+  document.getElementById('tx-count').textContent=orders.length+' record'+(orders.length!==1?'s':'');
+  const tbody=document.getElementById('tx-tbody');
+  if(!orders.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">No records match this filter</td></tr>';return;}
+  tbody.innerHTML=[...orders].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(o=>{
+    const bc={PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+    const dc={PAID:'var(--green)',PENDING:'var(--yellow)',FAILED:'var(--red)',PROCESSING:'#60a5fa'}[o.status]||'var(--muted)';
+    return`<tr>
+      <td><span class="order-tag">${o.orderId}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${o.customerPhone}</td>
+      <td style="font-size:12px;color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.items.map(i=>i.name+' x'+i.quantity).join(', ')}</td>
+      <td style="font-family:'Syne',sans-serif;font-weight:700">KSh ${o.totalAmount.toLocaleString()}</td>
+      <td><span class="badge ${bc}"><span style="width:5px;height:5px;border-radius:50%;background:${dc};display:inline-block"></span> ${o.status}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.mpesaReceiptNumber||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(o.createdAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function initCheckout(){
+  const item=document.getElementById('co-item').value.trim()||'Hardware Purchase';
+  const amount=parseFloat(document.getElementById('co-amount').value);
+  const phone=document.getElementById('co-phone').value.trim();
+  document.getElementById('co-error').innerHTML='';
+  if(!phone.match(/^254[0-9]{9}$/)){showCoError('Phone must be 12 digits starting with 254');return;}
+  if(!amount||amount<1){showCoError('Enter a valid amount (minimum KSh 1)');return;}
+  setBtnLoading(true);
+  try{
+    const coRes=await fetch(API+'/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,items:[{name:item,quantity:1,price:Math.ceil(amount)}]})});
+    const coData=await coRes.json();
+    if(!coData.success)throw new Error(coData.message);
+    const orderId=coData.data.orderId;
+    const stkRes=await fetch(API+'/stkpush',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,phone})});
+    const stkData=await stkRes.json();
+    if(!stkData.success)throw new Error(stkData.message);
+    setBtnLoading(false);
+    showProcessing(phone,orderId);
+    startPoll(orderId);
+  }catch(err){
+    setBtnLoading(false);
+    showCoError(err.message||'Request failed. Check connection.');
+  }
+}
+function showProcessing(phone,orderId){
+  document.getElementById('co-idle').style.display='none';
+  document.getElementById('co-processing').style.display='block';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-phone-disp').textContent=phone;
+  document.getElementById('tl-order-id').textContent=orderId;
+  document.getElementById('co-order-tag').innerHTML='<span class="order-tag">'+orderId+'</span>';
+  document.getElementById('poll-count-disp').textContent='0';
+}
+function startPoll(orderId){
+  pollCount=0;clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    pollCount++;
+    document.getElementById('poll-count-disp').textContent=pollCount;
+    try{
+      const r=await fetch(API+'/order/'+orderId);
+      const data=await r.json();
+      if(!data.success)return;
+      const s=data.data?.status;
+      if(s==='PAID'){clearInterval(pollTimer);showCoSuccess(data.data);}
+      else if(s==='FAILED'||s==='CANCELLED'){clearInterval(pollTimer);showCoFailed(data.data?.failureReason);}
+      else if(pollCount>=24){clearInterval(pollTimer);showCoFailed('Timed out. Please try again.');}
+    }catch{}
+  },5000);
+}
+function showCoSuccess(d){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='block';
+  document.getElementById('rc-receipt').textContent=d.mpesaReceiptNumber||'Pending';
+  document.getElementById('rc-amount').textContent='KSh '+(d.totalAmount||0).toLocaleString();
+  document.getElementById('rc-order').textContent=d.orderId;
+  document.getElementById('rc-time').textContent=d.paidAt?new Date(d.paidAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'}):new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+}
+function showCoFailed(reason){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-failed').style.display='block';
+  document.getElementById('co-fail-reason').textContent=reason||'Payment was not completed.';
+}
+function resetCheckout(){
+  clearInterval(pollTimer);
+  document.getElementById('co-idle').style.display='block';
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-order-tag').textContent='No active transaction';
+  document.getElementById('co-error').innerHTML='';
+}
+function setBtnLoading(on){
+  document.getElementById('co-btn-text').textContent=on?'Sending…':'Send STK Push';
+  document.getElementById('co-spinner').style.display=on?'block':'none';
+  document.getElementById('co-btn').disabled=on;
+}
+function showCoError(msg){
+  document.getElementById('co-error').innerHTML='<div class="info-box error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+msg+'</div>';
+}
+
+async function lookupOrder(){
+  const id=document.getElementById('lookup-id').value.trim();
+  if(!id)return;
+  const el=document.getElementById('lookup-result');
+  el.innerHTML='<div style="color:var(--muted);font-size:13px">Looking up '+id+'…</div>';
+  try{
+    const r=await fetch(API+'/order/'+id);
+    const data=await r.json();
+    if(!data.success){el.innerHTML='<div class="info-box error">'+( data.message||'Order not found')+'</div>';return;}
+    const o=data.data;
+    const bc={PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+    el.innerHTML=`<div class="panel fade-up" style="margin-top:0">
+      <div class="panel-head"><div><div class="panel-title">${o.orderId}</div><div class="panel-sub">Live from backend</div></div><span class="badge ${bc}">${o.status}</span></div>
+      <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div class="input-label">Phone</div><div style="font-family:'DM Mono',monospace;font-size:13px">${o.customerPhone||'—'}</div></div>
+        <div><div class="input-label">Amount</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px">KSh ${(o.totalAmount||0).toLocaleString()}</div></div>
+        <div><div class="input-label">M-Pesa Receipt</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:${o.mpesaReceiptNumber?'var(--green)':'var(--muted)'}">${o.mpesaReceiptNumber||'—'}</div></div>
+        <div><div class="input-label">Paid At</div><div style="font-size:12px;color:var(--muted)">${o.paidAt?new Date(o.paidAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'}):'—'}</div></div>
+        <div style="grid-column:span 2"><div class="input-label">Items</div><div style="font-size:12px;color:var(--muted)">${(o.items||[]).map(i=>i.name+' x'+i.quantity+' @ KSh '+i.price).join(' · ')||'—'}</div></div>
+        ${o.failureReason?'<div style="grid-column:span 2"><div class="info-box error" style="margin:0">'+o.failureReason+'</div></div>':''}
+      </div></div>`;
+  }catch(err){el.innerHTML='<div class="info-box error">Network error: '+err.message+'</div>';}
+}
+document.getElementById('lookup-id').addEventListener('keydown',e=>{if(e.key==='Enter')lookupOrder();});
+
+function refreshAll(){
+  loadDashboard();
+  if(document.getElementById('page-transactions').classList.contains('active'))loadTransactions();
+}
+function timeAgo(iso){
+  const diff=Date.now()-new Date(iso);
+  const m=Math.floor(diff/60000);
+  if(m<1)return'just now';if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);if(h<24)return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+loadDashboard();
+</script>
+</body>
+</html>

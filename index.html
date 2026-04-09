@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Business Revenue System — SROCI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07111f;--bg2:#0d1d30;--bg3:#122236;
+  --accent:#E8500A;--accent2:#ff6a2a;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.04);--card2:rgba(255,255,255,0.08);
+  --text:#dde8f3;--muted:#5f7d9a;--muted2:#8fa8c0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 80% 0%,rgba(232,80,10,.09) 0%,transparent 60%),radial-gradient(ellipse 40% 60% at 0% 100%,rgba(16,180,130,.05) 0%,transparent 60%);pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:248px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.main{margin-left:248px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.logo-mark{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;flex-shrink:0}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;letter-spacing:.02em;line-height:1.2}
+.logo-tagline{font-size:10px;color:var(--muted);line-height:1.4;padding-left:44px}
+
+/* Business context switcher */
+.ctx-switcher{margin:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ctx-label{font-size:9px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:8px 12px 4px;display:flex;align-items:center;justify-content:space-between}
+.ctx-label span{color:var(--accent);font-size:9px;cursor:pointer;letter-spacing:0}
+.ctx-select{display:block;width:100%;background:transparent;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:4px 12px 10px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none}
+.ctx-select option{background:#0d1d30;color:var(--text)}
+.ctx-mode{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.demo-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.toggle-track{width:28px;height:16px;background:var(--muted);border-radius:20px;position:relative;transition:.2s;flex-shrink:0}
+.toggle-track.on{background:var(--accent)}
+.toggle-knob{width:12px;height:12px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:.2s}
+.toggle-track.on .toggle-knob{left:14px}
+.demo-badge{background:rgba(232,80,10,.2);color:var(--accent2);font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+
+.sidebar-nav{padding:10px 10px;flex:1;overflow-y:auto}
+.nav-label{font-size:9px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:0 8px;margin-bottom:6px;margin-top:14px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted2);cursor:pointer;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--card2);color:var(--text)}
+.nav-item.active{background:rgba(232,80,10,.12);color:var(--accent2)}
+.nav-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.status-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sdot.warn{background:var(--yellow)}
+.sdot.pulse{animation:blink 1.4s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.powered{font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
+
+/* ── TOPBAR ── */
+.topbar{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(7,17,31,.7);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10}
+.topbar-left{}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-ghost:hover{background:var(--card2)}
+.btn-accent{background:var(--accent);border:none;color:white;border-radius:8px;padding:8px 15px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-accent:hover{background:var(--accent2)}
+.demo-pill{background:rgba(232,80,10,.15);border:1px solid rgba(232,80,10,.3);color:var(--accent2);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+
+/* ── PAGES ── */
+.page{padding:24px 28px;display:none;animation:fadein .2s ease}
+.page.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:rgba(255,255,255,.12)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.c-green::before{background:var(--green)}
+.stat-card.c-orange::before{background:var(--accent)}
+.stat-card.c-blue::before{background:var(--blue)}
+.stat-card.c-yellow::before{background:var(--yellow)}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.stat-value{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;line-height:1;margin-bottom:6px}
+.stat-sub{font-size:11px;color:var(--muted)}
+.stat-sub.up{color:var(--green)}
+
+/* ── PANELS ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.panel-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.panel-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.panel-body{padding:16px 18px}
+
+/* ── ONBOARDING ── */
+.onboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.onboard-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
+.onboard-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px}
+.onboard-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--muted2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:.15s}
+.form-input:focus{border-color:rgba(232,80,10,.4);background:rgba(232,80,10,.04)}
+.form-select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;appearance:none;cursor:pointer}
+.onboard-businesses{display:flex;flex-direction:column;gap:10px}
+.biz-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+.biz-card:hover{border-color:rgba(232,80,10,.3);background:rgba(232,80,10,.04)}
+.biz-card.active-biz{border-color:var(--accent);background:rgba(232,80,10,.08)}
+.biz-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.biz-name{font-weight:600;font-size:13px}
+.biz-type{font-size:11px;color:var(--muted)}
+.biz-check{margin-left:auto;color:var(--accent);font-size:16px;display:none}
+.biz-card.active-biz .biz-check{display:block}
+
+/* ── TABLE ── */
+.tx-table{width:100%;border-collapse:collapse;font-size:13px}
+.tx-table th{text-align:left;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 12px 10px;font-weight:500}
+.tx-table td{padding:10px 12px;border-top:1px solid var(--border)}
+.tx-table tr:hover td{background:var(--card2)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.badge-paid{background:rgba(16,185,129,.12);color:#34d399}
+.badge-pending{background:rgba(245,158,11,.12);color:#fbbf24}
+.badge-failed{background:rgba(239,68,68,.12);color:#f87171}
+.badge-proc{background:rgba(59,130,246,.12);color:#93c5fd}
+
+/* ── CHECKOUT ── */
+.co-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.co-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.co-head{padding:16px 18px;border-bottom:1px solid var(--border)}
+.co-body{padding:18px}
+.co-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.co-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.dash-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:.15s;margin-bottom:10px}
+.dash-input:focus{border-color:rgba(232,80,10,.4)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.co-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-bottom:10px;display:none}
+.co-error.show{display:flex;align-items:flex-start;gap:7px}
+.tl-steps{display:flex;flex-direction:column;gap:0}
+.tl-row{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:20px;flex-shrink:0}
+.tl-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:white}
+.tl-dot.active{background:var(--blue);border-color:var(--blue);animation:blink 1s ease infinite}
+.tl-dot.spin-dot{background:#3b82f6;border-color:#3b82f6}
+.tl-line{width:2px;flex:1;background:var(--border);min-height:16px}
+.tl-content{flex:1;padding-top:1px}
+.tl-title{font-size:13px;font-weight:600}
+.tl-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.status-empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.status-icon{font-size:32px;margin-bottom:10px;opacity:.4}
+.co-success{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:16px;text-align:center}
+.co-failed{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;text-align:center}
+
+/* ── LOOKUP ── */
+.lookup-panel{max-width:600px}
+.lookup-row{display:flex;gap:8px;margin-bottom:16px}
+.lookup-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none}
+.lookup-input:focus{border-color:rgba(232,80,10,.4)}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-anim{animation:spin .7s linear infinite}
+.btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;display:none}
+
+/* ── DEMO MODE BANNER ── */
+.demo-banner{background:rgba(232,80,10,.08);border-bottom:1px solid rgba(232,80,10,.2);padding:8px 28px;display:none;align-items:center;gap:8px;font-size:12px;color:var(--accent2)}
+.demo-banner.show{display:flex}
+.demo-banner strong{font-weight:700}
+
+/* ── CHART ── */
+.chart-wrap{height:80px;display:flex;align-items:flex-end;gap:4px;padding:0 4px}
+.chart-bar{flex:1;border-radius:3px 3px 0 0;background:rgba(232,80,10,.3);transition:height .4s ease;min-height:4px;cursor:pointer;position:relative}
+.chart-bar:hover{background:rgba(232,80,10,.6)}
+.chart-bar.today{background:var(--accent)}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{background:var(--card);border:1px solid var(--border);color:var(--muted2);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.filter-btn:hover,.filter-btn.active{background:rgba(232,80,10,.12);border-color:rgba(232,80,10,.3);color:var(--accent2)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .co-grid{grid-template-columns:1fr}
+  .onboard-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-row">
+      <div class="logo-mark">S</div>
+      <div>
+        <div class="logo-name">SROCI</div>
+      </div>
+    </div>
+    <div class="logo-tagline">Revenue · Operations · Compliance</div>
+  </div>
+
+  <!-- Business Switcher -->
+  <div class="ctx-switcher">
+    <div class="ctx-label">
+      <span>ACTIVE BUSINESS</span>
+      <span onclick="showPage('onboard',null)" style="color:var(--accent)">+ Add</span>
+    </div>
+    <select class="ctx-select" id="biz-select" onchange="switchBusiness(this.value)">
+      <option value="hardware">Sylmar Hardware</option>
+      <option value="electronics">Demo Electronics Store</option>
+      <option value="pharmacy">CityCare Pharmacy</option>
+    </select>
+    <div class="ctx-mode">
+      <span id="mode-label">Live Mode</span>
+      <label class="demo-toggle" onclick="toggleDemoMode()">
+        <div class="toggle-track" id="demo-track"><div class="toggle-knob"></div></div>
+        <span id="demo-mode-label">Demo</span>
+      </label>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+      <span class="nav-dot"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('transactions',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+      Transactions
+    </button>
+
+    <div class="nav-label">Actions</div>
+    <button class="nav-item" onclick="showPage('checkout',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      New Payment
+    </button>
+    <button class="nav-item" onclick="showPage('lookup',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5L14 14"/></svg>
+      Order Lookup
+    </button>
+
+    <div class="nav-label">Setup</div>
+    <button class="nav-item" onclick="showPage('onboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v14M1 8h14"/></svg>
+      Add Business
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="status-row">
+      <div class="sdot pulse" id="sidebar-dot"></div>
+      <span id="sidebar-status">Connecting…</span>
+    </div>
+    <div class="powered">Powered by Mobisa Digital · SROCI v1.0</div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- Demo Mode Banner -->
+  <div class="demo-banner" id="demo-banner">
+    <span>⚡</span>
+    <span><strong>DEMO MODE ACTIVE</strong> — Payments are simulated. No real M-Pesa transactions are initiated.</span>
+  </div>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="page-title">
+        Dashboard
+        <span class="demo-pill" id="demo-pill" style="display:none">Demo</span>
+      </div>
+      <div class="topbar-sub" id="page-sub">Real-time revenue and payment overview</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="refreshCurrent()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8a7 7 0 1 0 7-7 7 7 0 0 0-4.9 2"/><path d="M1 3v4h4"/></svg>
+        Refresh
+      </button>
+      <button class="btn-accent" onclick="showPage('checkout',null)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v12M2 8h12"/></svg>
+        New Payment
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: DASHBOARD ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card c-green">
+        <div class="stat-label">Revenue Today</div>
+        <div class="stat-value" id="stat-revenue">—</div>
+        <div class="stat-sub up" id="stat-revenue-sub">Live from backend</div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value" id="stat-orders">—</div>
+        <div class="stat-sub" id="stat-orders-sub">All time, all statuses</div>
+      </div>
+      <div class="stat-card c-blue">
+        <div class="stat-label">Paid Orders</div>
+        <div class="stat-value" id="stat-paid">—</div>
+        <div class="stat-sub up" id="stat-success-rate">— success rate</div>
+      </div>
+      <div class="stat-card c-yellow">
+        <div class="stat-label">Pending / Active</div>
+        <div class="stat-value" id="stat-pending">—</div>
+        <div class="stat-sub">Awaiting confirmation</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Recent Activity</div>
+            <div class="panel-sub" id="activity-sub">Latest 6 transactions</div>
+          </div>
+          <button class="filter-btn active" onclick="showPage('transactions',null)">All →</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div id="activity-list" style="padding:8px 0"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">7-Day Revenue</div>
+            <div class="panel-sub">KSh daily totals</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap" id="revenue-chart"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:6px;padding:0 4px" id="chart-labels"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TRANSACTIONS ══ -->
+  <div class="page" id="page-transactions">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterTx('',this)">All</button>
+      <button class="filter-btn" onclick="filterTx('PAID',this)">Paid</button>
+      <button class="filter-btn" onclick="filterTx('PENDING',this)">Pending</button>
+      <button class="filter-btn" onclick="filterTx('PROCESSING',this)">Processing</button>
+      <button class="filter-btn" onclick="filterTx('FAILED',this)">Failed</button>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">All Transactions</div>
+          <div class="panel-sub" id="tx-count-sub">Loading…</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Item</th>
+              <th>Phone</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Receipt</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: CHECKOUT ══ -->
+  <div class="page" id="page-checkout">
+    <div class="co-grid">
+      <div class="co-panel">
+        <div class="co-head">
+          <div class="co-title">Initiate M-Pesa Payment</div>
+          <div class="co-sub">Creates order and sends STK Push</div>
+        </div>
+        <div class="co-body" id="co-idle">
+          <div class="form-group">
+            <label class="form-label">Item / Description</label>
+            <input class="dash-input" id="co-item" placeholder="e.g. Portland Cement 50kg"/>
+          </div>
+          <div class="input-row">
+            <div>
+              <label class="form-label">Amount (KSh)</label>
+              <input class="dash-input" id="co-amount" type="number" placeholder="0"/>
+            </div>
+            <div>
+              <label class="form-label">Phone (254…)</label>
+              <input class="dash-input" id="co-phone" type="tel" placeholder="2547XXXXXXXX"/>
+            </div>
+          </div>
+          <div class="co-error" id="co-error"></div>
+          <button class="btn-accent" style="width:100%;justify-content:center;padding:11px" onclick="initCheckout()" id="co-btn">
+            <svg id="co-spinner" class="btn-spinner" viewBox="0 0 24 24"></svg>
+            <span id="co-btn-text">SEND STK PUSH</span>
+          </button>
+        </div>
+        <div class="co-body" id="co-processing" style="display:none">
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">STK sent to</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px" id="co-phone-disp"></div>
+          </div>
+          <div class="tl-steps">
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot done">✓</div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">Order created</div><div class="tl-sub" id="tl-order-id"></div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot done">✓</div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">STK Push sent</div><div class="tl-sub">Prompt on customer phone</div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot active"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">Waiting for PIN entry</div><div class="tl-sub">Polling every 5s · <span id="poll-count-disp">0</span> checks</div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot"></div></div><div class="tl-content"><div class="tl-title" style="color:var(--muted)">Confirmation</div><div class="tl-sub">Pending Safaricom callback</div></div></div>
+          </div>
+        </div>
+        <div class="co-body" id="co-success" style="display:none">
+          <div class="co-success">
+            <div style="font-size:32px;margin-bottom:8px">✅</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--green);margin-bottom:4px">Payment Confirmed</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">M-Pesa receipt: <span id="rc-receipt" style="font-family:'DM Mono',monospace;color:var(--text)"></span></div>
+            <div style="font-size:18px;font-weight:700;margin-bottom:14px" id="rc-amount"></div>
+            <button class="btn-accent" style="width:100%;justify-content:center" onclick="resetCheckout()">New Payment</button>
+          </div>
+        </div>
+        <div class="co-body" id="co-failed" style="display:none">
+          <div class="co-failed">
+            <div style="font-size:32px;margin-bottom:8px">❌</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px">CANCELLED</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="co-fail-reason"></div>
+            <button class="btn-accent" style="width:100%;justify-content:center" onclick="resetCheckout()">Try Again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="co-panel">
+        <div class="co-head">
+          <div class="co-title">Payment Status</div>
+          <div class="co-sub" id="co-order-tag">No active transaction</div>
+        </div>
+        <div class="co-body" id="co-status-body">
+          <div class="status-empty">
+            <div class="status-icon">🛡</div>
+            <div style="font-size:13px">Fill in the form and click<br>Send STK Push to begin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: LOOKUP ══ -->
+  <div class="page" id="page-lookup">
+    <div class="lookup-panel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Order Lookup</div>
+            <div class="panel-sub">Fetch live status of any order by ID</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="lookup-row">
+            <input class="lookup-input" id="lookup-input" placeholder="SYL-…" onkeydown="if(event.key==='Enter')lookupOrder()"/>
+            <button class="btn-accent" onclick="lookupOrder()">Search</button>
+          </div>
+          <div id="lookup-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: ONBOARDING ══ -->
+  <div class="page" id="page-onboard">
+    <div class="onboard-grid">
+      <div class="onboard-card">
+        <div class="onboard-title">Add New Business</div>
+        <div class="onboard-sub">Onboard a business to the SROCI platform</div>
+        <div class="form-group">
+          <label class="form-label">Business Name *</label>
+          <input class="form-input" id="ob-name" placeholder="e.g. Nairobi Electronics Ltd"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Type</label>
+          <select class="form-select" id="ob-type">
+            <option>Hardware & Building Materials</option>
+            <option>Electronics & Appliances</option>
+            <option>Pharmacy & Health</option>
+            <option>Supermarket & Retail</option>
+            <option>Clothing & Fashion</option>
+            <option>Restaurant & Food</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input class="form-input" id="ob-phone" placeholder="0712 345 678"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" id="ob-email" placeholder="info@business.co.ke"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paybill / Till Number</label>
+          <input class="form-input" id="ob-paybill" placeholder="e.g. 247247"/>
+        </div>
+        <button class="btn-accent" style="width:100%;justify-content:center;padding:11px;margin-top:6px" onclick="onboardBusiness()">
+          <span id="ob-btn-text">Activate Business</span>
+        </button>
+        <div id="ob-result" style="margin-top:12px;font-size:12px;color:var(--green);display:none"></div>
+      </div>
+
+      <div class="onboard-card">
+        <div class="onboard-title">Active Businesses</div>
+        <div class="onboard-sub">Click to switch dashboard context</div>
+        <div class="onboard-businesses" id="biz-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  SROCI — Business Revenue System
+//  Deployable Multi-Business Demo Kit v1.0
+//  © 2026 Mobisa Digital
+// ══════════════════════════════════════════════════════
+
+const API = 'https://sylmar-mpesa.onrender.com/api';
+let allOrders = [], pollTimer = null, pollCount = 0;
+let demoMode = false;
+let currentBiz = 'hardware';
+
+// ── BUSINESS CONTEXTS ──────────────────────────────────
+const BUSINESSES = {
+  hardware: {
+    id: 'hardware',
+    name: 'Sylmar Hardware',
+    type: 'Hardware & Building Materials',
+    icon: '🏗️',
+    color: '#E8500A',
+    prefix: 'SYL',
+    products: ['Portland Cement 50kg','Steel Bars 12mm','Roofing Sheets 3m','Chipboard 18mm','Cordless Drill 18V','Plywood 12mm','Angle Grinder 850W','MDF Board 18mm','PVC Pipes 2"','Wire Mesh Roll','Paint Roller Set','Ceramic Tiles (Box)'],
+    priceRange: [500, 15000]
+  },
+  electronics: {
+    id: 'electronics',
+    name: 'Demo Electronics Store',
+    type: 'Electronics & Appliances',
+    icon: '📱',
+    color: '#3b82f6',
+    prefix: 'ELC',
+    products: ['Samsung Galaxy A54','iPhone 14 Case','32" Smart TV','USB-C Charger 65W','Wireless Earbuds','Laptop Bag 15"','HDMI Cable 2m','Power Bank 20000mAh','Bluetooth Speaker','Gaming Mouse','Mechanical Keyboard','Ring Light 10"'],
+    priceRange: [500, 85000]
+  },
+  pharmacy: {
+    id: 'pharmacy',
+    name: 'CityCare Pharmacy',
+    type: 'Pharmacy & Health',
+    icon: '💊',
+    color: '#10b981',
+    prefix: 'CCR',
+    products: ['Paracetamol 500mg (x24)','Blood Pressure Monitor','Vitamin C 1000mg','Face Masks (Box 50)','Hand Sanitizer 500ml','Thermometer Digital','Ibuprofen 400mg','Multivitamin (30 tabs)','First Aid Kit','Cough Syrup 200ml','Insulin Syringes','BP Medication (Monthly)'],
+    priceRange: [150, 8000]
+  }
+};
+
+// Dynamic businesses added via onboarding
+const customBusinesses = {};
+
+function getBiz(id){ return BUSINESSES[id] || customBusinesses[id] || BUSINESSES.hardware; }
+
+// ── DEMO DATA SEEDS ────────────────────────────────────
+function seedOrders(bizId){
+  const biz = getBiz(bizId);
+  const now = Date.now(), day = 86400000;
+  const phones = ['254712345678','254722987654','254733456789','254708112233','254701223344','254790334455','254711445566','254745556677','254756667788','254767778899'];
+  const statuses = ['PAID','PAID','PAID','PAID','PAID','PENDING','PROCESSING','FAILED','PAID','PAID'];
+  const receipts = ['QHJ2A3K7LM','RKL9B4X2PQ','NMP5C8D1VW','SXT7F2G9KA','DWQ3H1J7LB','PQR8H5N2WX','AZL1M9K4VB','TYU6C3P8NM'];
+
+  return phones.map((phone, i) => {
+    const product = biz.products[i % biz.products.length];
+    const [min, max] = biz.priceRange;
+    const price = Math.floor(Math.random() * (max - min) + min);
+    const qty = Math.ceil(Math.random() * 3);
+    const status = statuses[i];
+    const daysAgo = i * 0.3 * day;
+    const orderId = `${biz.prefix}-${(now - Math.floor(daysAgo)).toString().slice(3)}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    return {
+      orderId,
+      businessId: bizId,
+      customerPhone: phone,
+      items: [{name: product, quantity: qty, price}],
+      totalAmount: price * qty,
+      status,
+      mpesaReceiptNumber: status === 'PAID' ? receipts[i % receipts.length] : null,
+      paidAt: status === 'PAID' ? new Date(now - daysAgo).toISOString() : null,
+      failureReason: status === 'FAILED' ? 'Request cancelled by user' : null,
+      createdAt: new Date(now - daysAgo - 3 * 60000).toISOString()
+    };
+  });
+}
+
+// ── CONTEXT SWITCHING ──────────────────────────────────
+function switchBusiness(bizId){
+  currentBiz = bizId;
+  const biz = getBiz(bizId);
+
+  // Update logo
+  document.querySelector('.logo-mark').textContent = biz.name.charAt(0);
+  document.querySelector('.logo-mark').style.background = biz.color;
+
+  // Reload current page data
+  allOrders = seedOrders(bizId);
+  renderDashboard();
+  renderTransactions();
+  updateBizList();
+
+  // Update select
+  document.getElementById('biz-select').value = bizId;
+}
+
+// ── DEMO MODE ──────────────────────────────────────────
+function toggleDemoMode(){
+  demoMode = !demoMode;
+  const track = document.getElementById('demo-track');
+  const banner = document.getElementById('demo-banner');
+  const pill = document.getElementById('demo-pill');
+  const modeLabel = document.getElementById('mode-label');
+
+  track.className = 'toggle-track' + (demoMode ? ' on' : '');
+  banner.className = 'demo-banner' + (demoMode ? ' show' : '');
+  pill.style.display = demoMode ? 'inline-flex' : 'none';
+  modeLabel.textContent = demoMode ? 'Demo Mode' : 'Live Mode';
+}
+
+function genFakeReceipt(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:10}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// ── HEALTH CHECK ──────────────────────────────────────
+async function checkHealth(){
+  try{
+    const r = await fetch('https://sylmar-mpesa.onrender.com/health', {signal: AbortSignal.timeout(65000)});
+    const ok = r.ok;
+    document.getElementById('sidebar-dot').className = 'sdot' + (ok ? ' pulse' : ' warn');
+    document.getElementById('sidebar-status').textContent = ok ? 'Online' : 'Degraded';
+  } catch {
+    document.getElementById('sidebar-dot').className = 'sdot warn';
+    document.getElementById('sidebar-status').textContent = 'Waking up…';
+    setTimeout(checkHealth, 20000);
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+// ── PAGE NAVIGATION ───────────────────────────────────
+const pageMeta = {
+  dashboard: {title:'Dashboard', sub:'Real-time revenue and payment overview'},
+  transactions: {title:'Transactions', sub:'All payment records'},
+  checkout: {title:'New Payment', sub:'Trigger an M-Pesa STK Push'},
+  lookup: {title:'Order Lookup', sub:'Search any order by ID'},
+  onboard: {title:'Add Business', sub:'Onboard a new business to SROCI'}
+};
+
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  const pill = document.getElementById('demo-pill');
+  document.getElementById('page-title').innerHTML = pageMeta[id].title + (demoMode ? ' <span class="demo-pill">Demo</span>' : '');
+  document.getElementById('page-sub').textContent = pageMeta[id].sub;
+  if(id === 'dashboard') renderDashboard();
+  if(id === 'transactions') renderTransactions();
+  if(id === 'onboard') updateBizList();
+}
+
+function refreshCurrent(){
+  const active = document.querySelector('.page.active');
+  if(active.id === 'page-dashboard') renderDashboard();
+  if(active.id === 'page-transactions') renderTransactions();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard(){
+  if(!allOrders.length) allOrders = seedOrders(currentBiz);
+
+  const paid = allOrders.filter(o => o.status === 'PAID');
+  const pending = allOrders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayPaid = paid.filter(o => o.paidAt && new Date(o.paidAt) >= today);
+  const revenue = todayPaid.reduce((s,o) => s + o.totalAmount, 0);
+  const rate = allOrders.length ? Math.round(paid.length / allOrders.length * 100) : 0;
+
+  document.getElementById('stat-revenue').textContent = 'KSh ' + revenue.toLocaleString();
+  document.getElementById('stat-orders').textContent = allOrders.length;
+  document.getElementById('stat-paid').textContent = paid.length;
+  document.getElementById('stat-success-rate').textContent = rate + '% success rate';
+  document.getElementById('stat-pending').textContent = pending.length;
+
+  // Activity list
+  const recent = [...allOrders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0,6);
+  const actEl = document.getElementById('activity-list');
+  actEl.innerHTML = recent.map(o => {
+    const iconColor = o.status==='PAID'?'var(--green)':o.status==='FAILED'?'var(--red)':'var(--yellow)';
+    const icon = o.status==='PAID'?'✓':o.status==='FAILED'?'✕':'○';
+    const ago = timeAgo(o.createdAt);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border)">
+      <div style="width:28px;height:28px;border-radius:50%;background:${iconColor}22;color:${iconColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.items[0]?.name||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.customerPhone} · ${ago}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:600;color:${iconColor}">KSh ${o.totalAmount.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--muted)">${o.status}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderChart(paid);
+}
+
+function renderChart(paid){
+  const chartEl = document.getElementById('revenue-chart');
+  const labelsEl = document.getElementById('chart-labels');
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    const total = paid.filter(o=>o.paidAt&&new Date(o.paidAt)>=d&&new Date(o.paidAt)<next).reduce((s,o)=>s+o.totalAmount,0);
+    days.push({label:['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()],total,isToday:i===0});
+  }
+  const max = Math.max(...days.map(d=>d.total),1);
+  chartEl.innerHTML = days.map(d=>`<div class="chart-bar${d.isToday?' today':''}" style="height:${Math.max(d.total/max*100,4)}%" title="KSh ${d.total.toLocaleString()}"></div>`).join('');
+  labelsEl.innerHTML = days.map(d=>`<span>${d.label}</span>`).join('');
+}
+
+// ── TRANSACTIONS ──────────────────────────────────────
+function renderTransactions(){
+  if(!allOrders.length) allOrders = seedOrders(currentBiz);
+  filterTx('', document.querySelector('.filter-btn'));
+}
+
+let txFilter = '';
+function filterTx(f, btn){
+  txFilter = f;
+  if(btn){ document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const filtered = f ? allOrders.filter(o=>o.status===f) : allOrders;
+  document.getElementById('tx-count-sub').textContent = filtered.length + ' record' + (filtered.length!==1?'s':'');
+  const sorted = [...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const tbody = document.getElementById('tx-tbody');
+  tbody.innerHTML = sorted.map(o=>{
+    const bc = {PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+    const dot = {PAID:'var(--green)',PENDING:'var(--yellow)',FAILED:'var(--red)',PROCESSING:'var(--blue)'}[o.status]||'var(--muted)';
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.orderId}</td>
+      <td style="font-size:12px">${o.items[0]?.name||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.customerPhone}</td>
+      <td style="font-weight:600">KSh ${o.totalAmount.toLocaleString()}</td>
+      <td><span class="badge ${bc}"><span style="width:5px;height:5px;border-radius:50%;background:${dot};display:inline-block"></span> ${o.status}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.mpesaReceiptNumber||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(o.createdAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHECKOUT / STK PUSH ───────────────────────────────
+async function initCheckout(){
+  const item = document.getElementById('co-item').value.trim() || 'Purchase';
+  const amount = parseFloat(document.getElementById('co-amount').value);
+  const phone = document.getElementById('co-phone').value.trim();
+  hideCoError();
+  if(!phone.match(/^254[0-9]{9}$/)){showCoError('Phone must be 12 digits starting with 254'); return;}
+  if(!amount||amount<1){showCoError('Enter a valid amount (minimum KSh 1)'); return;}
+
+  setBtnLoading(true);
+
+  // DEMO MODE — simulate without real API
+  if(demoMode){
+    showCoError('⚡ Demo Mode: Simulating STK push…');
+    document.getElementById('co-error').style.background='rgba(59,130,246,.1)';
+    document.getElementById('co-error').style.borderColor='rgba(59,130,246,.2)';
+    document.getElementById('co-error').style.color='#93c5fd';
+
+    const biz = getBiz(currentBiz);
+    const fakeOrderId = `${biz.prefix}-${Date.now().toString().slice(3)}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    await sleep(1500);
+    setBtnLoading(false);
+    hideCoError();
+    showProcessing(phone, fakeOrderId);
+
+    // Simulate success after 3-5s
+    const delay = 3000 + Math.random() * 2000;
+    setTimeout(()=>{
+      clearInterval(pollTimer);
+      const fakeReceipt = genFakeReceipt();
+      showCoSuccess({mpesaReceiptNumber: fakeReceipt, totalAmount: amount});
+      // Add to demo orders
+      allOrders.unshift({
+        orderId: fakeOrderId, businessId: currentBiz,
+        customerPhone: phone,
+        items:[{name: item, quantity:1, price:amount}],
+        totalAmount: amount, status:'PAID',
+        mpesaReceiptNumber: fakeReceipt,
+        paidAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+    }, delay);
+    return;
+  }
+
+  // LIVE MODE
+  showCoError('Connecting… this may take up to 60s if server is waking up.');
+  try{
+    const coRes = await fetch(API+'/checkout',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({phone, items:[{name:item, quantity:1, price:Math.ceil(amount)}]}),
+      signal: AbortSignal.timeout(65000)
+    });
+    const coData = await coRes.json();
+    if(!coData.success) throw new Error(coData.message);
+    const orderId = coData.data.orderId;
+    hideCoError();
+    const stkRes = await fetch(API+'/stkpush',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orderId, phone}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const stkData = await stkRes.json();
+    if(!stkData.success) throw new Error(stkData.message);
+    setBtnLoading(false);
+    showProcessing(phone, orderId);
+    startPoll(orderId);
+  } catch(err){
+    setBtnLoading(false);
+    showCoError(err.message || 'Request failed. Check connection.');
+  }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function showProcessing(phone, orderId){
+  document.getElementById('co-idle').style.display='none';
+  document.getElementById('co-processing').style.display='block';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-phone-disp').textContent = phone;
+  document.getElementById('tl-order-id').textContent = orderId;
+  document.getElementById('co-order-tag').textContent = orderId;
+  document.getElementById('poll-count-disp').textContent = '0';
+}
+
+function startPoll(orderId){
+  pollCount=0; clearInterval(pollTimer);
+  pollTimer = setInterval(async()=>{
+    pollCount++;
+    document.getElementById('poll-count-disp').textContent = pollCount;
+    try{
+      const r = await fetch(API+'/order/'+orderId);
+      const data = await r.json();
+      if(!data.success) return;
+      const s = data.data?.status;
+      if(s==='PAID'){clearInterval(pollTimer); showCoSuccess(data.data);}
+      else if(s==='FAILED'||s==='CANCELLED'){clearInterval(pollTimer); showCoFailed(data.data?.failureReason);}
+      else if(pollCount>=24){clearInterval(pollTimer); showCoFailed('Timed out. Please try again.');}
+    }catch{}
+  }, 5000);
+}
+
+function showCoSuccess(d){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='block';
+  document.getElementById('rc-receipt').textContent = d.mpesaReceiptNumber||'Confirmed';
+  document.getElementById('rc-amount').textContent = 'KSh '+(d.totalAmount||0).toLocaleString();
+}
+function showCoFailed(reason){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-failed').style.display='block';
+  document.getElementById('co-fail-reason').textContent = reason||'Payment was not completed.';
+}
+function resetCheckout(){
+  document.getElementById('co-idle').style.display='block';
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-order-tag').textContent='No active transaction';
+  document.getElementById('co-amount').value='';
+  document.getElementById('co-phone').value='';
+  document.getElementById('co-status-body').innerHTML=`<div class="status-empty"><div class="status-icon">🛡</div><div style="font-size:13px">Fill in the form and click<br>Send STK Push to begin</div></div>`;
+  clearInterval(pollTimer);
+}
+function showCoError(msg){ const el=document.getElementById('co-error'); el.textContent=msg; el.className='co-error show'; el.style.background=''; el.style.borderColor=''; el.style.color=''; }
+function hideCoError(){ document.getElementById('co-error').className='co-error'; }
+function setBtnLoading(on){
+  document.getElementById('co-spinner').style.display=on?'inline-block':'none';
+  document.getElementById('co-btn-text').textContent=on?'Sending…':'SEND STK PUSH';
+  document.getElementById('co-btn').disabled=on;
+}
+
+// ── ORDER LOOKUP ──────────────────────────────────────
+async function lookupOrder(){
+  const id = document.getElementById('lookup-input').value.trim();
+  const el = document.getElementById('lookup-result');
+  if(!id){ el.innerHTML='<div style="color:var(--muted);font-size:13px">Enter an order ID.</div>'; return; }
+
+  // Check demo orders first
+  const local = allOrders.find(o=>o.orderId===id);
+  if(local || demoMode){
+    if(local){ renderLookupResult(local, el); return; }
+    el.innerHTML='<div style="color:var(--muted);font-size:13px">Order not found in demo data.</div>'; return;
+  }
+
+  el.innerHTML='<div style="color:var(--muted);font-size:13px">Searching…</div>';
+  try{
+    const r = await fetch(API+'/order/'+id, {signal: AbortSignal.timeout(30000)});
+    const data = await r.json();
+    if(!data.success) throw new Error(data.message);
+    renderLookupResult(data.data, el);
+  }catch(err){
+    el.innerHTML=`<div style="color:var(--red);font-size:13px">${err.message||'Not found.'}</div>`;
+  }
+}
+
+function renderLookupResult(o, el){
+  const bc={PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+  el.innerHTML=`<div class="panel" style="margin-top:12px">
+    <div class="panel-head">
+      <div><div class="panel-title">${o.orderId}</div><div class="panel-sub">Live from backend</div></div>
+      <span class="badge ${bc}">${o.status}</span>
+    </div>
+    <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+      <div><span style="color:var(--muted)">Phone:</span> ${o.customerPhone}</div>
+      <div><span style="color:var(--muted)">Amount:</span> KSh ${(o.totalAmount||0).toLocaleString()}</div>
+      <div><span style="color:var(--muted)">Receipt:</span> ${o.mpesaReceiptNumber||'—'}</div>
+      <div><span style="color:var(--muted)">Created:</span> ${new Date(o.createdAt).toLocaleString('en-KE')}</div>
+      ${o.items?`<div style="grid-column:1/-1"><span style="color:var(--muted)">Items:</span> ${o.items.map(i=>i.name).join(', ')}</div>`:''}
+    </div>
+  </div>`;
+}
+
+// ── ONBOARDING ────────────────────────────────────────
+function onboardBusiness(){
+  const name = document.getElementById('ob-name').value.trim();
+  const type = document.getElementById('ob-type').value;
+  const phone = document.getElementById('ob-phone').value.trim();
+  const email = document.getElementById('ob-email').value.trim();
+  const paybill = document.getElementById('ob-paybill').value.trim();
+  const res = document.getElementById('ob-result');
+
+  if(!name){ res.style.color='var(--red)'; res.textContent='Business name is required.'; res.style.display='block'; return; }
+
+  const id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now().toString().slice(-4);
+  const prefix = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3);
+
+  customBusinesses[id] = {
+    id, name, type, icon: '🏢', color: '#8b5cf6', prefix,
+    products: ['Product A','Product B','Product C','Product D','Product E'],
+    priceRange: [500, 10000]
+  };
+
+  // Add to select
+  const select = document.getElementById('biz-select');
+  const opt = document.createElement('option');
+  opt.value = id; opt.textContent = name;
+  select.appendChild(opt);
+
+  res.style.color = 'var(--green)';
+  res.textContent = `✓ ${name} activated successfully. Business ID: ${id}`;
+  res.style.display = 'block';
+
+  // Clear form
+  ['ob-name','ob-phone','ob-email','ob-paybill'].forEach(f=>document.getElementById(f).value='');
+
+  updateBizList();
+
+  // Auto switch to new business after 1.5s
+  setTimeout(()=>{ switchBusiness(id); showPage('dashboard',null); select.value=id; }, 1500);
+}
+
+function updateBizList(){
+  const all = {...BUSINESSES, ...customBusinesses};
+  const el = document.getElementById('biz-list');
+  el.innerHTML = Object.values(all).map(b=>`
+    <div class="biz-card ${b.id===currentBiz?'active-biz':''}" onclick="switchBusiness('${b.id}');document.getElementById('biz-select').value='${b.id}'">
+      <div class="biz-icon" style="background:${b.color}22">${b.icon}</div>
+      <div>
+        <div class="biz-name">${b.name}</div>
+        <div class="biz-type">${b.type}</div>
+      </div>
+      <div class="biz-check">✓</div>
+    </div>
+  `).join('');
+}
+
+// ── UTILITIES ─────────────────────────────────────────
+function timeAgo(iso){
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff/60000);
+  if(m<1) return 'just now';
+  if(m<60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if(h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+// ── INIT ──────────────────────────────────────────────
+allOrders = seedOrders('hardware');
+renderDashboard();
+updateBizList();
+</script>
+</body>
+</html>

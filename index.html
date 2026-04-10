@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>M-Pesa Duka System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07111f;--bg2:#0d1d30;--bg3:#122236;
+  --accent:#E8500A;--accent2:#ff6a2a;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.04);--card2:rgba(255,255,255,0.08);
+  --text:#dde8f3;--muted:#5f7d9a;--muted2:#8fa8c0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 80% 0%,rgba(232,80,10,.09) 0%,transparent 60%),radial-gradient(ellipse 40% 60% at 0% 100%,rgba(16,180,130,.05) 0%,transparent 60%);pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:248px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.main{margin-left:248px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.logo-mark{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white;flex-shrink:0}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;letter-spacing:.02em;line-height:1.2}
+.logo-tagline{font-size:10px;color:var(--muted);line-height:1.4;padding-left:44px}
+
+/* Business context switcher */
+.ctx-switcher{margin:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ctx-label{font-size:9px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:8px 12px 4px;display:flex;align-items:center;justify-content:space-between}
+.ctx-label span{color:var(--accent);font-size:9px;cursor:pointer;letter-spacing:0}
+.ctx-select{display:block;width:100%;background:transparent;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:4px 12px 10px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none}
+.ctx-select option{background:#0d1d30;color:var(--text)}
+.ctx-mode{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.demo-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.toggle-track{width:28px;height:16px;background:var(--muted);border-radius:20px;position:relative;transition:.2s;flex-shrink:0}
+.toggle-track.on{background:var(--accent)}
+.toggle-knob{width:12px;height:12px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:.2s}
+.toggle-track.on .toggle-knob{left:14px}
+.demo-badge{background:rgba(232,80,10,.2);color:var(--accent2);font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+
+.sidebar-nav{padding:10px 10px;flex:1;overflow-y:auto}
+.nav-label{font-size:9px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding:0 8px;margin-bottom:6px;margin-top:14px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted2);cursor:pointer;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--card2);color:var(--text)}
+.nav-item.active{background:rgba(232,80,10,.12);color:var(--accent2)}
+.nav-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.status-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sdot.warn{background:var(--yellow)}
+.sdot.pulse{animation:blink 1.4s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.powered{font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
+
+/* ── TOPBAR ── */
+.topbar{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(7,17,31,.7);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10}
+.topbar-left{}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-ghost:hover{background:var(--card2)}
+.btn-accent{background:var(--accent);border:none;color:white;border-radius:8px;padding:8px 15px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-accent:hover{background:var(--accent2)}
+.demo-pill{background:rgba(232,80,10,.15);border:1px solid rgba(232,80,10,.3);color:var(--accent2);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+
+/* ── PAGES ── */
+.page{padding:24px 28px;display:none;animation:fadein .2s ease}
+.page.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:rgba(255,255,255,.12)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.c-green::before{background:var(--green)}
+.stat-card.c-orange::before{background:var(--accent)}
+.stat-card.c-blue::before{background:var(--blue)}
+.stat-card.c-yellow::before{background:var(--yellow)}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.stat-value{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;line-height:1;margin-bottom:6px}
+.stat-sub{font-size:11px;color:var(--muted)}
+.stat-sub.up{color:var(--green)}
+
+/* ── PANELS ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.panel-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.panel-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.panel-body{padding:16px 18px}
+
+/* ── ONBOARDING ── */
+.onboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.onboard-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
+.onboard-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px}
+.onboard-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--muted2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:.15s}
+.form-input:focus{border-color:rgba(232,80,10,.4);background:rgba(232,80,10,.04)}
+.form-select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;appearance:none;cursor:pointer}
+.onboard-businesses{display:flex;flex-direction:column;gap:10px}
+.biz-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+.biz-card:hover{border-color:rgba(232,80,10,.3);background:rgba(232,80,10,.04)}
+.biz-card.active-biz{border-color:var(--accent);background:rgba(232,80,10,.08)}
+.biz-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.biz-name{font-weight:600;font-size:13px}
+.biz-type{font-size:11px;color:var(--muted)}
+.biz-check{margin-left:auto;color:var(--accent);font-size:16px;display:none}
+.biz-card.active-biz .biz-check{display:block}
+
+/* ── TABLE ── */
+.tx-table{width:100%;border-collapse:collapse;font-size:13px}
+.tx-table th{text-align:left;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 12px 10px;font-weight:500}
+.tx-table td{padding:10px 12px;border-top:1px solid var(--border)}
+.tx-table tr:hover td{background:var(--card2)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.badge-paid{background:rgba(16,185,129,.12);color:#34d399}
+.badge-pending{background:rgba(245,158,11,.12);color:#fbbf24}
+.badge-failed{background:rgba(239,68,68,.12);color:#f87171}
+.badge-proc{background:rgba(59,130,246,.12);color:#93c5fd}
+
+/* ── CHECKOUT ── */
+.co-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.co-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.co-head{padding:16px 18px;border-bottom:1px solid var(--border)}
+.co-body{padding:18px}
+.co-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.co-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.dash-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:.15s;margin-bottom:10px}
+.dash-input:focus{border-color:rgba(232,80,10,.4)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.co-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-bottom:10px;display:none}
+.co-error.show{display:flex;align-items:flex-start;gap:7px}
+.tl-steps{display:flex;flex-direction:column;gap:0}
+.tl-row{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:20px;flex-shrink:0}
+.tl-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:white}
+.tl-dot.active{background:var(--blue);border-color:var(--blue);animation:blink 1s ease infinite}
+.tl-dot.spin-dot{background:#3b82f6;border-color:#3b82f6}
+.tl-line{width:2px;flex:1;background:var(--border);min-height:16px}
+.tl-content{flex:1;padding-top:1px}
+.tl-title{font-size:13px;font-weight:600}
+.tl-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.status-empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.status-icon{font-size:32px;margin-bottom:10px;opacity:.4}
+.co-success{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:16px;text-align:center}
+.co-failed{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;text-align:center}
+
+/* ── LOOKUP ── */
+.lookup-panel{max-width:600px}
+.lookup-row{display:flex;gap:8px;margin-bottom:16px}
+.lookup-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none}
+.lookup-input:focus{border-color:rgba(232,80,10,.4)}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-anim{animation:spin .7s linear infinite}
+.btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;display:none}
+
+/* ── DEMO MODE BANNER ── */
+.demo-banner{background:rgba(232,80,10,.08);border-bottom:1px solid rgba(232,80,10,.2);padding:8px 28px;display:none;align-items:center;gap:8px;font-size:12px;color:var(--accent2)}
+.demo-banner.show{display:flex}
+.demo-banner strong{font-weight:700}
+
+/* ── CHART ── */
+.chart-wrap{height:80px;display:flex;align-items:flex-end;gap:4px;padding:0 4px}
+.chart-bar{flex:1;border-radius:3px 3px 0 0;background:rgba(232,80,10,.3);transition:height .4s ease;min-height:4px;cursor:pointer;position:relative}
+.chart-bar:hover{background:rgba(232,80,10,.6)}
+.chart-bar.today{background:var(--accent)}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{background:var(--card);border:1px solid var(--border);color:var(--muted2);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.filter-btn:hover,.filter-btn.active{background:rgba(232,80,10,.12);border-color:rgba(232,80,10,.3);color:var(--accent2)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ══ ACCESS GATE ══════════════════════════════════════ */
+#access-gate{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+#access-gate::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 20%,rgba(232,80,10,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 80%,rgba(16,180,130,.05) 0%,transparent 60%);
+  pointer-events:none;
+}
+.gate-grid{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr 1fr;
+  max-width:900px;width:100%;gap:0;
+  border-radius:20px;overflow:hidden;
+  border:1px solid var(--border);
+  box-shadow:0 40px 120px rgba(0,0,0,.6);
+}
+.gate-left{
+  background:var(--accent);
+  padding:52px 44px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:520px;
+}
+.gate-left-top{}
+.gate-wordmark{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:28px;letter-spacing:-.02em;color:white;
+  margin-bottom:6px;
+}
+.gate-wordmark span{opacity:.6;font-weight:400}
+.gate-tagline{
+  font-size:12px;color:rgba(255,255,255,.7);
+  letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:40px;
+}
+.gate-headline{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:32px;line-height:1.15;color:white;
+  margin-bottom:16px;
+}
+.gate-desc{
+  font-size:14px;color:rgba(255,255,255,.75);
+  line-height:1.7;max-width:300px;
+}
+.gate-modules{
+  display:flex;flex-direction:column;gap:10px;
+  margin-top:32px;
+}
+.gate-module{
+  display:flex;align-items:center;gap:10px;
+  font-size:12px;color:rgba(255,255,255,.8);
+}
+.gate-module-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.5);flex-shrink:0;
+}
+.gate-left-bottom{
+  font-size:11px;color:rgba(255,255,255,.4);
+  margin-top:40px;
+}
+
+.gate-right{
+  background:var(--bg2);
+  padding:52px 44px;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.gate-form-label{
+  font-size:11px;color:var(--muted);
+  letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:28px;display:flex;align-items:center;gap:8px;
+}
+.gate-form-label::before{
+  content:'';display:inline-block;
+  width:20px;height:1px;background:var(--muted);
+}
+.gate-title{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:22px;color:var(--text);
+  margin-bottom:6px;
+}
+.gate-sub{
+  font-size:13px;color:var(--muted);
+  line-height:1.6;margin-bottom:32px;
+}
+.gate-input-wrap{position:relative;margin-bottom:12px;}
+.gate-input{
+  width:100%;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  font-family:'DM Mono',monospace;
+  font-size:16px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:14px 16px;
+  outline:none;transition:all .2s;
+}
+.gate-input::placeholder{
+  color:var(--muted);font-size:13px;
+  letter-spacing:.06em;text-transform:none;font-family:'DM Sans',sans-serif;
+}
+.gate-input:focus{
+  border-color:rgba(232,80,10,.5);
+  background:rgba(232,80,10,.04);
+  box-shadow:0 0 0 3px rgba(232,80,10,.1);
+}
+.gate-input.error{
+  border-color:rgba(239,68,68,.5);
+  background:rgba(239,68,68,.04);
+  animation:shake .3s ease;
+}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.gate-error{
+  font-size:12px;color:#f87171;
+  margin-bottom:16px;min-height:16px;
+  display:flex;align-items:center;gap:6px;
+}
+.gate-btn{
+  width:100%;background:var(--accent);border:none;
+  color:white;font-family:'Syne',sans-serif;
+  font-weight:700;font-size:14px;letter-spacing:.04em;
+  padding:14px;border-radius:10px;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;
+  justify-content:center;gap:8px;
+}
+.gate-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,80,10,.3);}
+.gate-btn:active{transform:none}
+.gate-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.gate-hint{
+  margin-top:20px;padding:12px 14px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:8px;
+  font-size:11px;color:var(--muted);line-height:1.6;
+}
+.gate-hint strong{color:var(--muted2)}
+.gate-footer{
+  margin-top:32px;font-size:11px;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.gate-version{
+  font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--muted);opacity:.5;
+}
+
+/* Context selector screen */
+#ctx-select-screen{
+  position:fixed;inset:0;z-index:9998;
+  background:var(--bg);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;
+}
+.ctx-screen-inner{max-width:560px;width:100%}
+.ctx-screen-title{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:24px;margin-bottom:6px;
+}
+.ctx-screen-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+.ctx-biz-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.ctx-biz-opt{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:all .15s;
+}
+.ctx-biz-opt:hover{border-color:rgba(232,80,10,.3);background:rgba(232,80,10,.05);transform:translateX(4px);}
+.ctx-biz-icon{font-size:24px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--bg3);flex-shrink:0;}
+.ctx-biz-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:2px;}
+.ctx-biz-type{font-size:12px;color:var(--muted);}
+.ctx-biz-arrow{margin-left:auto;color:var(--muted);font-size:18px;}
+.ctx-back{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.ctx-back:hover{color:var(--text);}
+
+/* Switch access button in sidebar */
+.switch-access-btn{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;color:var(--muted);
+  cursor:pointer;margin-top:8px;padding:5px 0;
+  transition:.15s;background:none;border:none;
+  font-family:'DM Sans',sans-serif;
+}
+.switch-access-btn:hover{color:var(--accent2);}
+
+@media(max-width:700px){
+  .gate-grid{grid-template-columns:1fr}
+  .gate-left{display:none}
+  .gate-right{padding:36px 28px;min-height:100vh;justify-content:center;}
+}
+
+/* ══ POS / SALES TERMINAL ══════════════════════════════ */
+.pos-shell{
+  display:grid;
+  grid-template-columns:1fr 300px 280px;
+  gap:0;height:calc(100vh - 57px);
+  overflow:hidden;
+}
+.pos-catalog{
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.pos-catalog-head{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;flex-direction:column;gap:8px;flex-shrink:0;
+}
+.pos-section-title{
+  font-family:'Syne',sans-serif;font-weight:700;
+  font-size:13px;color:var(--text);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.pos-search{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;
+  font-size:12.5px;padding:8px 11px;outline:none;transition:.15s;
+}
+.pos-search:focus{border-color:rgba(232,80,10,.4);}
+.pos-items-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;padding:12px;overflow-y:auto;align-content:start;
+}
+.pos-item-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:12px;cursor:pointer;
+  transition:all .15s;position:relative;
+}
+.pos-item-card:hover{
+  border-color:rgba(232,80,10,.4);background:rgba(232,80,10,.05);
+  transform:translateY(-1px);
+}
+.pos-item-card:active{transform:none;}
+.pos-item-name{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.3;}
+.pos-item-price{font-size:13px;color:var(--accent2);font-weight:700;margin-bottom:8px;}
+.pos-item-unit{font-size:10px;color:var(--muted);}
+.pos-add-btn{
+  width:100%;background:rgba(232,80,10,.12);border:1px solid rgba(232,80,10,.2);
+  color:var(--accent2);border-radius:6px;padding:5px;
+  font-size:11px;font-weight:700;cursor:pointer;
+  transition:.15s;font-family:'DM Sans',sans-serif;
+}
+.pos-add-btn:hover{background:rgba(232,80,10,.22);}
+.pos-in-cart-badge{
+  position:absolute;top:8px;right:8px;
+  background:var(--accent);color:white;
+  font-size:10px;font-weight:700;
+  width:18px;height:18px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+}
+.pos-item-card.in-cart .pos-in-cart-badge{display:flex;}
+
+/* Cart column */
+.pos-cart-col{
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--bg2);
+}
+.pos-clear-btn{
+  font-size:10px;color:var(--muted);background:none;border:none;
+  cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;
+}
+.pos-clear-btn:hover{color:var(--red);}
+.pos-cart-items{flex:1;overflow-y:auto;padding:8px;}
+.pos-cart-empty{
+  text-align:center;padding:40px 16px;
+  font-size:12px;color:var(--muted);
+}
+.pos-cart-row{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin-bottom:6px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.pos-cart-row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.pos-cart-item-name{font-size:12px;font-weight:600;line-height:1.3;flex:1;}
+.pos-cart-remove{
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:14px;padding:0;line-height:1;flex-shrink:0;
+}
+.pos-cart-remove:hover{color:var(--red);}
+.pos-cart-row-bottom{display:flex;align-items:center;justify-content:space-between;}
+.pos-qty-ctrl{display:flex;align-items:center;gap:6px;}
+.pos-qty-btn{
+  width:22px;height:22px;border-radius:4px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:.1s;font-family:'DM Sans',sans-serif;
+}
+.pos-qty-btn:hover{background:var(--card2);}
+.pos-qty-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;min-width:20px;text-align:center;}
+.pos-item-line-total{font-size:13px;font-weight:700;color:var(--accent2);}
+.pos-cart-footer{
+  padding:14px;border-top:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;
+}
+.pos-totals{display:flex;flex-direction:column;gap:6px;}
+.pos-total-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);}
+.pos-grand{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text);margin-top:4px;}
+
+/* Payment column */
+.pos-payment-col{
+  padding:16px;overflow-y:auto;background:var(--bg2);
+}
+.pos-pay-section{}
+
+/* Status display inside POS */
+.pos-status-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;
+  margin-bottom:12px;
+}
+.pos-status-pending{background:rgba(245,158,11,.12);color:#fbbf24;}
+.pos-status-sent{background:rgba(59,130,246,.12);color:#93c5fd;}
+.pos-status-paid{background:rgba(16,185,129,.12);color:#34d399;}
+.pos-status-failed{background:rgba(239,68,68,.12);color:#f87171;}
+
+/* POS transaction history items */
+.pos-tx-item{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin-bottom:6px;
+}
+.pos-tx-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.pos-tx-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.pos-tx-amount{font-size:13px;font-weight:700;color:var(--green);}
+.pos-tx-bottom{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+
+@media(max-width:1100px){
+  .pos-shell{grid-template-columns:1fr 260px 240px;}
+}
+@media(max-width:900px){
+  .pos-shell{grid-template-columns:1fr;grid-template-rows:auto auto auto;height:auto;}
+  .pos-catalog{max-height:400px;}
+}
+
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .co-grid{grid-template-columns:1fr}
+  .onboard-grid{grid-template-columns:1fr}
+}
+
+/* ══ RECEIPT SYSTEM ═══════════════════════════════════ */
+.receipt-modal{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+.receipt-modal.show{display:flex}
+.receipt-wrap{background:white;color:#111;width:100%;max-width:420px;border-radius:12px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.5)}
+.receipt-actions{background:#f8f8f8;padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;border-bottom:1px solid #e5e5e5}
+.receipt-btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif}
+.receipt-btn.print{background:#111;color:white}
+.receipt-btn.close{background:#e5e5e5;color:#333}
+.receipt-body{padding:24px;font-family:'DM Mono',monospace}
+.receipt-header{text-align:center;border-bottom:2px dashed #ddd;padding-bottom:16px;margin-bottom:16px}
+.receipt-biz-name{font-size:18px;font-weight:700;letter-spacing:.02em;margin-bottom:2px;font-family:sans-serif}
+.receipt-biz-sub{font-size:11px;color:#666;margin-bottom:2px}
+.receipt-biz-contact{font-size:11px;color:#666}
+.receipt-title{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#999;margin-top:10px}
+.receipt-meta{font-size:11px;margin-bottom:14px}
+.receipt-meta-row{display:flex;justify-content:space-between;padding:2px 0;color:#555}
+.receipt-meta-row strong{color:#111}
+.receipt-items{margin-bottom:14px}
+.receipt-item-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f0f0}
+.receipt-item-row:last-child{border:none}
+.receipt-item-name{flex:1}
+.receipt-item-qty{color:#666;margin:0 12px;min-width:30px;text-align:right}
+.receipt-item-price{font-weight:600;min-width:70px;text-align:right}
+.receipt-totals{border-top:1px dashed #ddd;padding-top:10px;margin-bottom:14px}
+.receipt-total-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:#555}
+.receipt-total-big{display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:#111;padding-top:6px;border-top:2px solid #111;margin-top:6px}
+.receipt-footer{text-align:center;border-top:2px dashed #ddd;padding-top:14px;font-size:10px;color:#999;line-height:1.8}
+.receipt-paid-stamp{background:#111;color:white;text-align:center;padding:8px;font-size:11px;font-weight:700;letter-spacing:.2em;margin-bottom:14px;border-radius:4px}
+.receipt-etims{font-size:9px;color:#bbb;text-align:center;margin-top:8px;line-height:1.5;border-top:1px solid #eee;padding-top:8px}
+
+@media print{
+  body > *:not(.receipt-modal){display:none!important}
+  .receipt-modal{position:static!important;background:none!important;backdrop-filter:none!important;padding:0!important}
+  .receipt-wrap{box-shadow:none!important;border-radius:0!important;max-width:100%!important}
+  .receipt-actions{display:none!important}
+  .receipt-modal.show{display:block!important}
+}
+
+/* ══ REPORTS PAGE ════════════════════════════════════ */
+.reports-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.report-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.report-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.report-stat.c-green::before{background:var(--green)}
+.report-stat.c-orange::before{background:var(--accent)}
+.report-stat.c-blue::before{background:var(--blue)}
+.report-stat.c-red::before{background:var(--red)}
+.report-stat-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.report-stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;line-height:1;margin-bottom:4px}
+.report-stat-sub{font-size:11px;color:var(--muted)}
+.report-filters{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.report-select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;cursor:pointer}
+.report-export{margin-left:auto;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s}
+.report-export:hover{background:var(--card2)}
+
+/* ══ MULTI-USER / CREDIBILITY ════════════════════════ */
+.user-chip{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--muted2)}
+.user-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.system-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;letter-spacing:.04em}
+.system-status.live{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.system-status.demo{background:rgba(232,80,10,.12);color:var(--accent2);border:1px solid rgba(232,80,10,.2)}
+
+/* Gate user name field */
+.gate-user-row{margin-top:14px}
+.gate-user-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;display:block}
+
+/* Business profile section in onboard */
+.biz-profile-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* eTIMS notice */
+.etims-notice{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--muted2);line-height:1.6;margin-top:10px}
+.etims-notice strong{color:var(--blue)}</style>
+</head>
+<body>
+
+<!-- ══ ACCESS GATE ══ -->
+<div id="access-gate">
+  <div class="gate-grid">
+    <div class="gate-left">
+      <div class="gate-left-top">
+        <div class="gate-wordmark">M-Pesa Duka <span>by Mobisa Digital</span></div>
+        <div class="gate-tagline">Simplified M-Pesa Payments for Every Duka</div>
+        <div class="gate-headline">Collect payments.<br>Track orders.<br>Structure records.</div>
+        <div class="gate-desc">A unified operating system for African SMEs — built for mobile-first payment environments.</div>
+        <div class="gate-modules">
+          <div class="gate-module"><div class="gate-module-dot"></div>M-Pesa STK Push Integration</div>
+          <div class="gate-module"><div class="gate-module-dot"></div>Real-time Order Management</div>
+          <div class="gate-module"><div class="gate-module-dot"></div>Revenue Dashboard & Analytics</div>
+          <div class="gate-module"><div class="gate-module-dot"></div>Compliance-ready Transaction Records</div>
+        </div>
+      </div>
+      <div class="gate-left-bottom">© 2026 Mobisa Digital · M-Pesa Duka System</div>
+    </div>
+
+    <div class="gate-right">
+      <div class="gate-form-label">Controlled Access</div>
+      <div class="gate-title">Access Required</div>
+      <div class="gate-sub">Enter your access code to open the<br>M-Pesa Duka System.</div>
+
+      <div class="gate-input-wrap">
+        <input class="gate-input" id="gate-code" type="password"
+          placeholder="Enter access code"
+          onkeydown="if(event.key==='Enter')document.getElementById('gate-user').focus()"
+          oninput="clearGateError()"
+          autocomplete="off" autocorrect="off" spellcheck="false"/>
+      </div>
+      <div class="gate-user-row">
+        <label class="gate-user-label">Your Name (optional)</label>
+        <input class="gate-input" id="gate-user" type="text"
+          placeholder="e.g. John, Cashier 1"
+          onkeydown="if(event.key==='Enter')submitGate()"
+          autocomplete="off" style="font-size:13px;letter-spacing:0;text-transform:none;font-family:'DM Sans',sans-serif"/>
+      </div>
+      <div class="gate-error" id="gate-error"></div>
+      <button class="gate-btn" id="gate-btn" onclick="submitGate()">
+        <span id="gate-btn-text">Enter System</span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </button>
+      <div class="gate-hint">
+        <strong>Demo access:</strong> Use code <strong>DEMO</strong> to explore the system.<br>
+        Business-specific access codes are provided by Mobisa Digital.
+      </div>
+      <div class="gate-footer">
+        <span>A product by Mobisa Digital</span>
+        <span class="gate-version">Duka v1.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTEXT SELECTOR (shown after DEMO code) ══ -->
+<div id="ctx-select-screen">
+  <div class="ctx-screen-inner">
+    <div class="ctx-screen-title">Select Demo Business</div>
+    <div class="ctx-screen-sub">Choose a business context to explore. All data is simulated.</div>
+    <div class="ctx-biz-grid">
+      <div class="ctx-biz-opt" onclick="enterDemo('hardware')">
+        <div class="ctx-biz-icon">🏗️</div>
+        <div><div class="ctx-biz-name">Sylmar Hardware</div><div class="ctx-biz-type">Hardware & Building Materials · Kisii</div></div>
+        <div class="ctx-biz-arrow">→</div>
+      </div>
+      <div class="ctx-biz-opt" onclick="enterDemo('electronics')">
+        <div class="ctx-biz-icon">📱</div>
+        <div><div class="ctx-biz-name">Demo Electronics Store</div><div class="ctx-biz-type">Electronics & Appliances</div></div>
+        <div class="ctx-biz-arrow">→</div>
+      </div>
+      <div class="ctx-biz-opt" onclick="enterDemo('pharmacy')">
+        <div class="ctx-biz-icon">💊</div>
+        <div><div class="ctx-biz-name">CityCare Pharmacy</div><div class="ctx-biz-type">Pharmacy & Health</div></div>
+        <div class="ctx-biz-arrow">→</div>
+      </div>
+    </div>
+    <span class="ctx-back" onclick="exitToGate()">← Back to access gate</span>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-row">
+      <div class="logo-mark">S</div>
+      <div>
+        <div class="logo-name">Duka</div>
+      </div>
+    </div>
+    <div class="logo-tagline">Simplified M-Pesa Payments for Every Duka</div>
+  </div>
+
+  <!-- Business Switcher -->
+  <div class="ctx-switcher">
+    <div class="ctx-label">
+      <span>ACTIVE BUSINESS</span>
+      <span onclick="showPage('onboard',null)" style="color:var(--accent)">+ Add</span>
+    </div>
+    <select class="ctx-select" id="biz-select" onchange="switchBusiness(this.value)">
+      <option value="hardware">Sylmar Hardware</option>
+      <option value="electronics">Demo Electronics Store</option>
+      <option value="pharmacy">CityCare Pharmacy</option>
+    </select>
+    <div class="ctx-mode">
+      <span id="mode-label">Live Mode</span>
+      <label class="demo-toggle" onclick="toggleDemoMode()">
+        <div class="toggle-track" id="demo-track"><div class="toggle-knob"></div></div>
+        <span id="demo-mode-label">Demo</span>
+      </label>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+      <span class="nav-dot"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('transactions',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+      Transactions
+    </button>
+    <button class="nav-item" onclick="showPage('reports',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V8M6 12V4M10 12V6M14 12V2"/></svg>
+      Reports
+    </button>
+
+    <div class="nav-label">Actions</div>
+    <button class="nav-item" onclick="showPage('checkout',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      New Payment
+    </button>
+    <button class="nav-item" onclick="showPage('pos',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M5 7h6M5 10h4"/></svg>
+      Sales Terminal
+    </button>
+    <button class="nav-item" onclick="showPage('lookup',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5L14 14"/></svg>
+      Order Lookup
+    </button>
+
+    <div class="nav-label">Setup</div>
+    <button class="nav-item" onclick="showPage('onboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v14M1 8h14"/></svg>
+      Add Business
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="status-row">
+      <div class="sdot pulse" id="sidebar-dot"></div>
+      <span id="sidebar-status">Connecting…</span>
+    </div>
+    <button class="switch-access-btn" onclick="switchAccess()">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M10 4l4 4-4 4M6 12l-4-4 4-4"/></svg>
+      Switch System Access
+    </button>
+    <div class="powered">Powered by Mobisa Digital · Duka v1.0</div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- Demo Mode Banner -->
+  <div class="demo-banner" id="demo-banner">
+    <span>⚡</span>
+    <span><strong>DEMO MODE ACTIVE</strong> — Payments are simulated. No real M-Pesa transactions are initiated.</span>
+  </div>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="page-title">
+        Dashboard
+        <span class="demo-pill" id="demo-pill" style="display:none">Demo</span>
+      </div>
+      <div class="topbar-sub" id="page-sub">Real-time revenue and payment overview</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="system-status live" id="system-status-badge">● LIVE</span>
+      <span class="user-chip" id="topbar-user-chip" style="display:none"><span class="user-dot"></span><span id="topbar-user-name">—</span></span>
+      <button class="btn-ghost" onclick="refreshCurrent()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8a7 7 0 1 0 7-7 7 7 0 0 0-4.9 2"/><path d="M1 3v4h4"/></svg>
+        Refresh
+      </button>
+      <button class="btn-accent" onclick="showPage('checkout',null)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v12M2 8h12"/></svg>
+        New Payment
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: DASHBOARD ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card c-green">
+        <div class="stat-label">Revenue Today</div>
+        <div class="stat-value" id="stat-revenue">—</div>
+        <div class="stat-sub up" id="stat-revenue-sub">Live from backend</div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value" id="stat-orders">—</div>
+        <div class="stat-sub" id="stat-orders-sub">All time, all statuses</div>
+      </div>
+      <div class="stat-card c-blue">
+        <div class="stat-label">Paid Orders</div>
+        <div class="stat-value" id="stat-paid">—</div>
+        <div class="stat-sub up" id="stat-success-rate">— success rate</div>
+      </div>
+      <div class="stat-card c-yellow">
+        <div class="stat-label">Pending / Active</div>
+        <div class="stat-value" id="stat-pending">—</div>
+        <div class="stat-sub">Awaiting confirmation</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Recent Activity</div>
+            <div class="panel-sub" id="activity-sub">Latest 6 transactions</div>
+          </div>
+          <button class="filter-btn active" onclick="showPage('transactions',null)">All →</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div id="activity-list" style="padding:8px 0"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">7-Day Revenue</div>
+            <div class="panel-sub">KSh daily totals</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap" id="revenue-chart"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:6px;padding:0 4px" id="chart-labels"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TRANSACTIONS ══ -->
+  <div class="page" id="page-transactions">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterTx('',this)">All</button>
+      <button class="filter-btn" onclick="filterTx('PAID',this)">Paid</button>
+      <button class="filter-btn" onclick="filterTx('PENDING',this)">Pending</button>
+      <button class="filter-btn" onclick="filterTx('PROCESSING',this)">Processing</button>
+      <button class="filter-btn" onclick="filterTx('FAILED',this)">Failed</button>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">All Transactions</div>
+          <div class="panel-sub" id="tx-count-sub">Loading…</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Item</th>
+              <th>Phone</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Receipt</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: CHECKOUT ══ -->
+  <div class="page" id="page-checkout">
+    <div class="co-grid">
+      <div class="co-panel">
+        <div class="co-head">
+          <div class="co-title">Initiate M-Pesa Payment</div>
+          <div class="co-sub">Creates order and sends STK Push</div>
+        </div>
+        <div class="co-body" id="co-idle">
+          <div class="form-group">
+            <label class="form-label">Item / Description</label>
+            <input class="dash-input" id="co-item" placeholder="e.g. Portland Cement 50kg"/>
+          </div>
+          <div class="input-row">
+            <div>
+              <label class="form-label">Amount (KSh)</label>
+              <input class="dash-input" id="co-amount" type="number" placeholder="0"/>
+            </div>
+            <div>
+              <label class="form-label">Phone (254…)</label>
+              <input class="dash-input" id="co-phone" type="tel" placeholder="2547XXXXXXXX"/>
+            </div>
+          </div>
+          <div class="co-error" id="co-error"></div>
+          <button class="btn-accent" style="width:100%;justify-content:center;padding:11px" onclick="initCheckout()" id="co-btn">
+            <svg id="co-spinner" class="btn-spinner" viewBox="0 0 24 24"></svg>
+            <span id="co-btn-text">SEND STK PUSH</span>
+          </button>
+        </div>
+        <div class="co-body" id="co-processing" style="display:none">
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">STK sent to</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px" id="co-phone-disp"></div>
+          </div>
+          <div class="tl-steps">
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot done">✓</div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">Order created</div><div class="tl-sub" id="tl-order-id"></div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot done">✓</div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">STK Push sent</div><div class="tl-sub">Prompt on customer phone</div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot active"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-title">Waiting for PIN entry</div><div class="tl-sub">Polling every 5s · <span id="poll-count-disp">0</span> checks</div></div></div>
+            <div class="tl-row"><div class="tl-left"><div class="tl-dot"></div></div><div class="tl-content"><div class="tl-title" style="color:var(--muted)">Confirmation</div><div class="tl-sub">Pending Safaricom callback</div></div></div>
+          </div>
+        </div>
+        <div class="co-body" id="co-success" style="display:none">
+          <div class="co-success">
+            <div style="font-size:32px;margin-bottom:8px">✅</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--green);margin-bottom:4px">Payment Confirmed</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">M-Pesa receipt: <span id="rc-receipt" style="font-family:'DM Mono',monospace;color:var(--text)"></span></div>
+            <div style="font-size:18px;font-weight:700;margin-bottom:14px" id="rc-amount"></div>
+            <button class="btn-accent" style="width:100%;justify-content:center" onclick="resetCheckout()">New Payment</button>
+          </div>
+        </div>
+        <div class="co-body" id="co-failed" style="display:none">
+          <div class="co-failed">
+            <div style="font-size:32px;margin-bottom:8px">❌</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px">CANCELLED</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="co-fail-reason"></div>
+            <button class="btn-accent" style="width:100%;justify-content:center" onclick="resetCheckout()">Try Again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="co-panel">
+        <div class="co-head">
+          <div class="co-title">Payment Status</div>
+          <div class="co-sub" id="co-order-tag">No active transaction</div>
+        </div>
+        <div class="co-body" id="co-status-body">
+          <div class="status-empty">
+            <div class="status-icon">🛡</div>
+            <div style="font-size:13px">Fill in the form and click<br>Send STK Push to begin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: LOOKUP ══ -->
+  <div class="page" id="page-lookup">
+    <div class="lookup-panel">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Order Lookup</div>
+            <div class="panel-sub">Fetch live status of any order by ID</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="lookup-row">
+            <input class="lookup-input" id="lookup-input" placeholder="SYL-…" onkeydown="if(event.key==='Enter')lookupOrder()"/>
+            <button class="btn-accent" onclick="lookupOrder()">Search</button>
+          </div>
+          <div id="lookup-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: ONBOARDING ══ -->
+  <div class="page" id="page-onboard">
+    <!-- Business Profile Card -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-head">
+        <div><div class="panel-title">Business Profile</div><div class="panel-sub">This name and contact appear on all receipts</div></div>
+        <button class="btn-ghost" onclick="saveBizProfileForm()" style="font-size:12px">Save Profile</button>
+      </div>
+      <div class="panel-body">
+        <div class="biz-profile-form">
+          <div class="form-group">
+            <label class="form-label">Business Name *</label>
+            <input class="form-input" id="profile-name" placeholder="e.g. Sylmar Hardware Ltd"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location / Town</label>
+            <input class="form-input" id="profile-location" placeholder="e.g. Kisii Town, Kenya"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input class="form-input" id="profile-phone" placeholder="e.g. 0724 328 164"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" id="profile-email" placeholder="info@business.co.ke"/>
+          </div>
+        </div>
+        <div id="profile-saved" style="font-size:12px;color:var(--green);display:none;margin-top:6px">✓ Profile saved — will appear on all receipts</div>
+        <div class="etims-notice" style="margin-top:12px">
+          <strong>eTIMS Ready:</strong> Your business name, location, and contact are stored in the receipt structure aligned with KRA eTIMS invoicing standards. VAT rate is set to 16%. Full KRA eTIMS API integration available upon request.
+        </div>
+      </div>
+    </div>
+    <div class="onboard-grid">
+      <div class="onboard-card">
+        <div class="onboard-title">Add New Business</div>
+        <div class="onboard-sub">Onboard a business to the Duka System platform</div>
+        <div class="form-group">
+          <label class="form-label">Business Name *</label>
+          <input class="form-input" id="ob-name" placeholder="e.g. Nairobi Electronics Ltd"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Type</label>
+          <select class="form-select" id="ob-type">
+            <option>Hardware & Building Materials</option>
+            <option>Electronics & Appliances</option>
+            <option>Pharmacy & Health</option>
+            <option>Supermarket & Retail</option>
+            <option>Clothing & Fashion</option>
+            <option>Restaurant & Food</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input class="form-input" id="ob-phone" placeholder="0712 345 678"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" id="ob-email" placeholder="info@business.co.ke"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paybill / Till Number</label>
+          <input class="form-input" id="ob-paybill" placeholder="e.g. 247247"/>
+        </div>
+        <button class="btn-accent" style="width:100%;justify-content:center;padding:11px;margin-top:6px" onclick="onboardBusiness()">
+          <span id="ob-btn-text">Activate Business</span>
+        </button>
+        <div id="ob-result" style="margin-top:12px;font-size:12px;color:var(--green);display:none"></div>
+      </div>
+
+      <div class="onboard-card">
+        <div class="onboard-title">Active Businesses</div>
+        <div class="onboard-sub">Click to switch dashboard context</div>
+        <div class="onboard-businesses" id="biz-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: POS SALES TERMINAL ══ -->
+  <div class="page" id="page-pos">
+    <div class="pos-shell">
+
+      <!-- LEFT: Product Catalog -->
+      <div class="pos-left">
+        <div class="pos-catalog-head" style="flex-shrink:0">
+          <div style="position:relative">
+            <svg class="pos-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5L14 14"/></svg>
+            <input class="pos-search" id="pos-search" placeholder="Search products…" oninput="filterPOS(this.value)"/>
+          </div>
+        </div>
+        <div class="pos-items-grid" id="pos-grid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;align-content:start;padding-right:2px"></div>
+      </div>
+
+      <!-- CENTER: Cart -->
+      <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+        <div class="cart-panel">
+          <div class="cart-head">
+            <div class="cart-title">🛒 Cart <span id="cart-count" style="color:var(--muted);font-weight:400;font-size:12px"></span></div>
+            <button class="cart-clear" onclick="clearCart()">Clear all</button>
+          </div>
+          <div class="cart-items" id="cart-items">
+            <div class="cart-empty"><div class="cart-empty-icon">🛒</div>Cart is empty.<br>Add products from the catalog.</div>
+          </div>
+          <div class="cart-footer">
+            <div class="cart-total-row"><span>Subtotal</span><span id="cart-subtotal">KSh 0</span></div>
+            <div class="cart-total-row"><span>VAT (16%)</span><span id="cart-vat">KSh 0</span></div>
+            <div class="cart-total-big">
+              <span class="cart-total-label">TOTAL</span>
+              <span class="cart-total-val" id="cart-total">KSh 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Payment Panel -->
+      <div class="pos-right">
+        <div class="pay-panel" style="position:relative">
+          <!-- Success overlay -->
+          <div class="pos-success" id="pos-success-overlay">
+            <div class="pos-success-icon">✅</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--green);margin-bottom:4px">Payment Confirmed</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Transaction saved</div>
+            <div class="pos-receipt" id="pos-receipt-detail"></div>
+            <button class="pay-btn" style="margin-top:4px" onclick="posNewSale()">
+              + New Sale
+            </button>
+          </div>
+
+          <div class="pay-title">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="14" height="9" rx="1.5"/><path d="M4 8h2M4 11h5"/></svg>
+            M-Pesa Payment
+          </div>
+          <div class="pay-error" id="pay-error"></div>
+          <label style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:5px">Customer Phone</label>
+          <input class="pay-input" id="pos-phone" type="tel" placeholder="2547XXXXXXXX" maxlength="12" oninput="clearPayError()"/>
+          <div id="pay-status-block" style="display:none">
+            <div class="pay-status">
+              <div class="pay-status-row"><div class="psdot" id="ps1"></div><span class="ps-label" id="ps1-lbl">Order created</span></div>
+              <div class="pay-status-row"><div class="psdot" id="ps2"></div><span class="ps-label" id="ps2-lbl">STK Push sent</span></div>
+              <div class="pay-status-row"><div class="psdot" id="ps3"></div><span class="ps-label" id="ps3-lbl">Waiting for PIN</span></div>
+              <div class="pay-status-row"><div class="psdot" id="ps4"></div><span class="ps-label" id="ps4-lbl">Confirmed</span></div>
+            </div>
+          </div>
+          <button class="pay-btn" id="pos-pay-btn" onclick="posPay()" style="margin-top:10px">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v12M3 7l5-5 5 5"/></svg>
+            <span id="pos-pay-text">Send M-Pesa STK Push</span>
+          </button>
+          <button class="pay-btn danger" id="pos-cancel-btn" onclick="posCancelPayment()" style="margin-top:6px;display:none">
+            Cancel Payment
+          </button>
+          <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center" id="pos-pay-note">Enter customer phone number to proceed</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM: Transaction History -->
+      <div class="pos-history">
+        <div class="pos-history-head">
+          <div class="pos-history-title">Today's Transactions</div>
+          <span id="pos-tx-count" style="font-size:11px;color:var(--muted)">0 records</span>
+        </div>
+        <div class="pos-history-body">
+          <table class="tx-table" style="font-size:12px">
+            <thead><tr>
+              <th>Ref</th><th>Items</th><th>Phone</th><th>Total</th><th>Status</th><th>Receipt</th><th>Time</th>
+            </tr></thead>
+            <tbody id="pos-tx-tbody"></tbody>
+          </table>
+          <div class="pos-history-empty" id="pos-history-empty">No transactions yet. Complete a sale to see records here.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ PAGE: REPORTS ══ -->
+  <div class="page" id="page-reports">
+    <div class="reports-grid" id="reports-stats-grid">
+      <div class="report-stat c-green"><div class="report-stat-label">Revenue Today</div><div class="report-stat-val" id="rpt-revenue">KSh 0</div><div class="report-stat-sub">Confirmed payments</div></div>
+      <div class="report-stat c-orange"><div class="report-stat-label">Total Transactions</div><div class="report-stat-val" id="rpt-total">0</div><div class="report-stat-sub">All time</div></div>
+      <div class="report-stat c-blue"><div class="report-stat-label">Paid</div><div class="report-stat-val" id="rpt-paid">0</div><div class="report-stat-sub" id="rpt-rate">—% success rate</div></div>
+      <div class="report-stat c-red"><div class="report-stat-label">Failed / Cancelled</div><div class="report-stat-val" id="rpt-failed">0</div><div class="report-stat-sub">Not completed</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">Transaction Log</div><div class="panel-sub" id="rpt-log-sub">Filtered view</div></div>
+        <div class="report-filters">
+          <select class="report-select" id="rpt-date-filter" onchange="renderReports()">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="all">All Time</option>
+          </select>
+          <select class="report-select" id="rpt-status-filter" onchange="renderReports()">
+            <option value="">All Statuses</option>
+            <option value="PAID">Paid</option>
+            <option value="FAILED">Failed</option>
+            <option value="PENDING">Pending</option>
+          </select>
+          <select class="report-select" id="rpt-user-filter" onchange="renderReports()">
+            <option value="">All Users</option>
+          </select>
+          <button class="report-export" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead><tr>
+            <th>Ref</th><th>Items</th><th>Phone</th><th>Total</th><th>Status</th><th>Handled By</th><th>Receipt</th><th>Time</th>
+          </tr></thead>
+          <tbody id="rpt-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="etims-notice">
+      <strong>eTIMS Alignment Notice:</strong> This system is structured to align with KRA eTIMS invoicing requirements — itemised format, VAT separation, timestamps, and invoice references are all included. Full KRA eTIMS API integration can be enabled upon request.
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ══ RECEIPT MODAL ══ -->
+<div class="receipt-modal" id="receipt-modal">
+  <div class="receipt-wrap">
+    <div class="receipt-actions">
+      <button class="receipt-btn close" onclick="closeReceipt()">✕ Close</button>
+      <button class="receipt-btn print" onclick="printReceipt()">🖨 Print Receipt</button>
+    </div>
+    <div class="receipt-body" id="receipt-body">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  M-Pesa Duka System
+//  Deployable Multi-Business Demo Kit v1.0
+//  © 2026 Mobisa Digital
+// ══════════════════════════════════════════════════════
+
+const API = 'https://sylmar-mpesa.onrender.com/api';
+let allOrders = [], pollTimer = null, pollCount = 0;
+let demoMode = false;
+let currentBiz = 'hardware';
+
+// ── BUSINESS CONTEXTS ──────────────────────────────────
+const BUSINESSES = {
+  hardware: {
+    id: 'hardware',
+    name: 'Sylmar Hardware',
+    type: 'Hardware & Building Materials',
+    icon: '🏗️',
+    color: '#E8500A',
+    prefix: 'SYL',
+    products: ['Portland Cement 50kg','Steel Bars 12mm','Roofing Sheets 3m','Chipboard 18mm','Cordless Drill 18V','Plywood 12mm','Angle Grinder 850W','MDF Board 18mm','PVC Pipes 2"','Wire Mesh Roll','Paint Roller Set','Ceramic Tiles (Box)'],
+    priceRange: [500, 15000]
+  },
+  electronics: {
+    id: 'electronics',
+    name: 'Demo Electronics Store',
+    type: 'Electronics & Appliances',
+    icon: '📱',
+    color: '#3b82f6',
+    prefix: 'ELC',
+    products: ['Samsung Galaxy A54','iPhone 14 Case','32" Smart TV','USB-C Charger 65W','Wireless Earbuds','Laptop Bag 15"','HDMI Cable 2m','Power Bank 20000mAh','Bluetooth Speaker','Gaming Mouse','Mechanical Keyboard','Ring Light 10"'],
+    priceRange: [500, 85000]
+  },
+  pharmacy: {
+    id: 'pharmacy',
+    name: 'CityCare Pharmacy',
+    type: 'Pharmacy & Health',
+    icon: '💊',
+    color: '#10b981',
+    prefix: 'CCR',
+    products: ['Paracetamol 500mg (x24)','Blood Pressure Monitor','Vitamin C 1000mg','Face Masks (Box 50)','Hand Sanitizer 500ml','Thermometer Digital','Ibuprofen 400mg','Multivitamin (30 tabs)','First Aid Kit','Cough Syrup 200ml','Insulin Syringes','BP Medication (Monthly)'],
+    priceRange: [150, 8000]
+  }
+};
+
+// Dynamic businesses added via onboarding
+const customBusinesses = {};
+
+function getBiz(id){ return BUSINESSES[id] || customBusinesses[id] || BUSINESSES.hardware; }
+
+// ── DEMO DATA SEEDS ────────────────────────────────────
+function seedOrders(bizId){
+  const biz = getBiz(bizId);
+  const now = Date.now(), day = 86400000;
+  const phones = ['254712345678','254722987654','254733456789','254708112233','254701223344','254790334455','254711445566','254745556677','254756667788','254767778899'];
+  const statuses = ['PAID','PAID','PAID','PAID','PAID','PENDING','PROCESSING','FAILED','PAID','PAID'];
+  const receipts = ['QHJ2A3K7LM','RKL9B4X2PQ','NMP5C8D1VW','SXT7F2G9KA','DWQ3H1J7LB','PQR8H5N2WX','AZL1M9K4VB','TYU6C3P8NM'];
+
+  return phones.map((phone, i) => {
+    const product = biz.products[i % biz.products.length];
+    const [min, max] = biz.priceRange;
+    const price = Math.floor(Math.random() * (max - min) + min);
+    const qty = Math.ceil(Math.random() * 3);
+    const status = statuses[i];
+    const daysAgo = i * 0.3 * day;
+    const orderId = `${biz.prefix}-${(now - Math.floor(daysAgo)).toString().slice(3)}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    return {
+      orderId,
+      businessId: bizId,
+      customerPhone: phone,
+      items: [{name: product, quantity: qty, price}],
+      totalAmount: price * qty,
+      status,
+      mpesaReceiptNumber: status === 'PAID' ? receipts[i % receipts.length] : null,
+      paidAt: status === 'PAID' ? new Date(now - daysAgo).toISOString() : null,
+      failureReason: status === 'FAILED' ? 'Request cancelled by user' : null,
+      createdAt: new Date(now - daysAgo - 3 * 60000).toISOString()
+    };
+  });
+}
+
+// ── CONTEXT SWITCHING ──────────────────────────────────
+function switchBusiness(bizId){
+  currentBiz = bizId;
+  const biz = getBiz(bizId);
+
+  // Update logo
+  document.querySelector('.logo-mark').textContent = biz.name.charAt(0);
+  document.querySelector('.logo-mark').style.background = biz.color;
+
+  // Reload current page data
+  allOrders = seedOrders(bizId);
+  renderDashboard();
+  renderTransactions();
+  updateBizList();
+
+  // Refresh POS inventory for new business context
+  posCart = {};
+  posLocked = false;
+  if(document.getElementById('page-pos')?.classList.contains('active')) initPOS();
+  else { posLoadTx(); }
+
+  // Update select
+  document.getElementById('biz-select').value = bizId;
+}
+
+// ── DEMO MODE ──────────────────────────────────────────
+function toggleDemoMode(){
+  demoMode = !demoMode;
+  const track = document.getElementById('demo-track');
+  const banner = document.getElementById('demo-banner');
+  const pill = document.getElementById('demo-pill');
+  const modeLabel = document.getElementById('mode-label');
+
+  track.className = 'toggle-track' + (demoMode ? ' on' : '');
+  banner.className = 'demo-banner' + (demoMode ? ' show' : '');
+  pill.style.display = demoMode ? 'inline-flex' : 'none';
+  modeLabel.textContent = demoMode ? 'Demo Mode' : 'Live Mode';
+}
+
+function genFakeReceipt(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:10}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// ── HEALTH CHECK ──────────────────────────────────────
+async function checkHealth(){
+  try{
+    const r = await fetch('https://sylmar-mpesa.onrender.com/health', {signal: AbortSignal.timeout(65000)});
+    const ok = r.ok;
+    document.getElementById('sidebar-dot').className = 'sdot' + (ok ? ' pulse' : ' warn');
+    document.getElementById('sidebar-status').textContent = ok ? 'Online' : 'Degraded';
+  } catch {
+    document.getElementById('sidebar-dot').className = 'sdot warn';
+    document.getElementById('sidebar-status').textContent = 'Waking up…';
+    setTimeout(checkHealth, 20000);
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+// ── PAGE NAVIGATION ───────────────────────────────────
+const pageMeta = {
+  dashboard:    {title:'Dashboard',       sub:'Real-time revenue and payment overview'},
+  transactions: {title:'Transactions',    sub:'All payment records'},
+  checkout:     {title:'New Payment',     sub:'Trigger an M-Pesa STK Push'},
+  lookup:       {title:'Order Lookup',    sub:'Search any order by ID'},
+  onboard:      {title:'Business Setup',  sub:'Configure business profile and onboard to Duka System'},
+  pos:          {title:'Sales Terminal',  sub:'Vendor-operated M-Pesa point of sale'},
+  reports:      {title:'Reports',         sub:'Sales analytics and transaction history'}
+};
+
+function showPage(id, btn){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  document.getElementById('page-title').innerHTML = pageMeta[id].title + (demoMode ? ' <span class="demo-pill">Demo</span>' : '');
+  document.getElementById('page-sub').textContent = pageMeta[id].sub;
+  if(id === 'dashboard') renderDashboard();
+  if(id === 'transactions') renderTransactions();
+  if(id === 'onboard'){ updateBizList(); loadBizProfileForm(); }
+  if(id === 'pos') initPOS();
+  if(id === 'reports') renderReports();
+}
+
+function refreshCurrent(){
+  const active = document.querySelector('.page.active');
+  if(active.id === 'page-dashboard') renderDashboard();
+  if(active.id === 'page-transactions') renderTransactions();
+  if(active.id === 'page-reports') renderReports();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard(){
+  if(!allOrders.length) allOrders = seedOrders(currentBiz);
+
+  const paid = allOrders.filter(o => o.status === 'PAID');
+  const pending = allOrders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayPaid = paid.filter(o => o.paidAt && new Date(o.paidAt) >= today);
+  const revenue = todayPaid.reduce((s,o) => s + o.totalAmount, 0);
+  const rate = allOrders.length ? Math.round(paid.length / allOrders.length * 100) : 0;
+
+  document.getElementById('stat-revenue').textContent = 'KSh ' + revenue.toLocaleString();
+  document.getElementById('stat-orders').textContent = allOrders.length;
+  document.getElementById('stat-paid').textContent = paid.length;
+  document.getElementById('stat-success-rate').textContent = rate + '% success rate';
+  document.getElementById('stat-pending').textContent = pending.length;
+
+  // Activity list
+  const recent = [...allOrders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0,6);
+  const actEl = document.getElementById('activity-list');
+  actEl.innerHTML = recent.map(o => {
+    const iconColor = o.status==='PAID'?'var(--green)':o.status==='FAILED'?'var(--red)':'var(--yellow)';
+    const icon = o.status==='PAID'?'✓':o.status==='FAILED'?'✕':'○';
+    const ago = timeAgo(o.createdAt);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border)">
+      <div style="width:28px;height:28px;border-radius:50%;background:${iconColor}22;color:${iconColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.items[0]?.name||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.customerPhone} · ${ago}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:600;color:${iconColor}">KSh ${o.totalAmount.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--muted)">${o.status}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderChart(paid);
+}
+
+function renderChart(paid){
+  const chartEl = document.getElementById('revenue-chart');
+  const labelsEl = document.getElementById('chart-labels');
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    const total = paid.filter(o=>o.paidAt&&new Date(o.paidAt)>=d&&new Date(o.paidAt)<next).reduce((s,o)=>s+o.totalAmount,0);
+    days.push({label:['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()],total,isToday:i===0});
+  }
+  const max = Math.max(...days.map(d=>d.total),1);
+  chartEl.innerHTML = days.map(d=>`<div class="chart-bar${d.isToday?' today':''}" style="height:${Math.max(d.total/max*100,4)}%" title="KSh ${d.total.toLocaleString()}"></div>`).join('');
+  labelsEl.innerHTML = days.map(d=>`<span>${d.label}</span>`).join('');
+}
+
+// ── TRANSACTIONS ──────────────────────────────────────
+function renderTransactions(){
+  if(!allOrders.length) allOrders = seedOrders(currentBiz);
+  filterTx('', document.querySelector('.filter-btn'));
+}
+
+let txFilter = '';
+function filterTx(f, btn){
+  txFilter = f;
+  if(btn){ document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const filtered = f ? allOrders.filter(o=>o.status===f) : allOrders;
+  document.getElementById('tx-count-sub').textContent = filtered.length + ' record' + (filtered.length!==1?'s':'');
+  const sorted = [...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const tbody = document.getElementById('tx-tbody');
+  tbody.innerHTML = sorted.map(o=>{
+    const bc = {PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+    const dot = {PAID:'var(--green)',PENDING:'var(--yellow)',FAILED:'var(--red)',PROCESSING:'var(--blue)'}[o.status]||'var(--muted)';
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.orderId}</td>
+      <td style="font-size:12px">${o.items[0]?.name||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.customerPhone}</td>
+      <td style="font-weight:600">KSh ${o.totalAmount.toLocaleString()}</td>
+      <td><span class="badge ${bc}"><span style="width:5px;height:5px;border-radius:50%;background:${dot};display:inline-block"></span> ${o.status}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${o.mpesaReceiptNumber||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(o.createdAt).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHECKOUT / STK PUSH ───────────────────────────────
+async function initCheckout(){
+  const item = document.getElementById('co-item').value.trim() || 'Purchase';
+  const amount = parseFloat(document.getElementById('co-amount').value);
+  const phone = document.getElementById('co-phone').value.trim();
+  hideCoError();
+  if(!phone.match(/^254[0-9]{9}$/)){showCoError('Phone must be 12 digits starting with 254'); return;}
+  if(!amount||amount<1){showCoError('Enter a valid amount (minimum KSh 1)'); return;}
+
+  setBtnLoading(true);
+
+  // DEMO MODE — simulate without real API
+  if(demoMode){
+    showCoError('⚡ Demo Mode: Simulating STK push…');
+    document.getElementById('co-error').style.background='rgba(59,130,246,.1)';
+    document.getElementById('co-error').style.borderColor='rgba(59,130,246,.2)';
+    document.getElementById('co-error').style.color='#93c5fd';
+
+    const biz = getBiz(currentBiz);
+    const fakeOrderId = `${biz.prefix}-${Date.now().toString().slice(3)}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    await sleep(1500);
+    setBtnLoading(false);
+    hideCoError();
+    showProcessing(phone, fakeOrderId);
+
+    // Simulate success after 3-5s
+    const delay = 3000 + Math.random() * 2000;
+    setTimeout(()=>{
+      clearInterval(pollTimer);
+      const fakeReceipt = genFakeReceipt();
+      showCoSuccess({mpesaReceiptNumber: fakeReceipt, totalAmount: amount});
+      // Add to demo orders
+      allOrders.unshift({
+        orderId: fakeOrderId, businessId: currentBiz,
+        customerPhone: phone,
+        items:[{name: item, quantity:1, price:amount}],
+        totalAmount: amount, status:'PAID',
+        mpesaReceiptNumber: fakeReceipt,
+        paidAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+    }, delay);
+    return;
+  }
+
+  // LIVE MODE
+  showCoError('Connecting… this may take up to 60s if server is waking up.');
+  try{
+    const coRes = await fetch(API+'/checkout',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({phone, items:[{name:item, quantity:1, price:Math.ceil(amount)}]}),
+      signal: AbortSignal.timeout(65000)
+    });
+    const coData = await coRes.json();
+    if(!coData.success) throw new Error(coData.message);
+    const orderId = coData.data.orderId;
+    hideCoError();
+    const stkRes = await fetch(API+'/stkpush',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orderId, phone}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const stkData = await stkRes.json();
+    if(!stkData.success) throw new Error(stkData.message);
+    setBtnLoading(false);
+    showProcessing(phone, orderId);
+    startPoll(orderId);
+  } catch(err){
+    setBtnLoading(false);
+    showCoError(err.message || 'Request failed. Check connection.');
+  }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function showProcessing(phone, orderId){
+  document.getElementById('co-idle').style.display='none';
+  document.getElementById('co-processing').style.display='block';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-phone-disp').textContent = phone;
+  document.getElementById('tl-order-id').textContent = orderId;
+  document.getElementById('co-order-tag').textContent = orderId;
+  document.getElementById('poll-count-disp').textContent = '0';
+}
+
+function startPoll(orderId){
+  pollCount=0; clearInterval(pollTimer);
+  pollTimer = setInterval(async()=>{
+    pollCount++;
+    document.getElementById('poll-count-disp').textContent = pollCount;
+    try{
+      const r = await fetch(API+'/order/'+orderId);
+      const data = await r.json();
+      if(!data.success) return;
+      const s = data.data?.status;
+      if(s==='PAID'){clearInterval(pollTimer); showCoSuccess(data.data);}
+      else if(s==='FAILED'||s==='CANCELLED'){clearInterval(pollTimer); showCoFailed(data.data?.failureReason);}
+      else if(pollCount>=24){clearInterval(pollTimer); showCoFailed('Timed out. Please try again.');}
+    }catch{}
+  }, 5000);
+}
+
+function showCoSuccess(d){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='block';
+  document.getElementById('rc-receipt').textContent = d.mpesaReceiptNumber||'Confirmed';
+  document.getElementById('rc-amount').textContent = 'KSh '+(d.totalAmount||0).toLocaleString();
+}
+function showCoFailed(reason){
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-failed').style.display='block';
+  document.getElementById('co-fail-reason').textContent = reason||'Payment was not completed.';
+}
+function resetCheckout(){
+  document.getElementById('co-idle').style.display='block';
+  document.getElementById('co-processing').style.display='none';
+  document.getElementById('co-success').style.display='none';
+  document.getElementById('co-failed').style.display='none';
+  document.getElementById('co-order-tag').textContent='No active transaction';
+  document.getElementById('co-amount').value='';
+  document.getElementById('co-phone').value='';
+  document.getElementById('co-status-body').innerHTML=`<div class="status-empty"><div class="status-icon">🛡</div><div style="font-size:13px">Fill in the form and click<br>Send STK Push to begin</div></div>`;
+  clearInterval(pollTimer);
+}
+function showCoError(msg){ const el=document.getElementById('co-error'); el.textContent=msg; el.className='co-error show'; el.style.background=''; el.style.borderColor=''; el.style.color=''; }
+function hideCoError(){ document.getElementById('co-error').className='co-error'; }
+function setBtnLoading(on){
+  document.getElementById('co-spinner').style.display=on?'inline-block':'none';
+  document.getElementById('co-btn-text').textContent=on?'Sending…':'SEND STK PUSH';
+  document.getElementById('co-btn').disabled=on;
+}
+
+// ── ORDER LOOKUP ──────────────────────────────────────
+async function lookupOrder(){
+  const id = document.getElementById('lookup-input').value.trim();
+  const el = document.getElementById('lookup-result');
+  if(!id){ el.innerHTML='<div style="color:var(--muted);font-size:13px">Enter an order ID.</div>'; return; }
+
+  // Check demo orders first
+  const local = allOrders.find(o=>o.orderId===id);
+  if(local || demoMode){
+    if(local){ renderLookupResult(local, el); return; }
+    el.innerHTML='<div style="color:var(--muted);font-size:13px">Order not found in demo data.</div>'; return;
+  }
+
+  el.innerHTML='<div style="color:var(--muted);font-size:13px">Searching…</div>';
+  try{
+    const r = await fetch(API+'/order/'+id, {signal: AbortSignal.timeout(30000)});
+    const data = await r.json();
+    if(!data.success) throw new Error(data.message);
+    renderLookupResult(data.data, el);
+  }catch(err){
+    el.innerHTML=`<div style="color:var(--red);font-size:13px">${err.message||'Not found.'}</div>`;
+  }
+}
+
+function renderLookupResult(o, el){
+  const bc={PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[o.status]||'badge-pending';
+  el.innerHTML=`<div class="panel" style="margin-top:12px">
+    <div class="panel-head">
+      <div><div class="panel-title">${o.orderId}</div><div class="panel-sub">Live from backend</div></div>
+      <span class="badge ${bc}">${o.status}</span>
+    </div>
+    <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+      <div><span style="color:var(--muted)">Phone:</span> ${o.customerPhone}</div>
+      <div><span style="color:var(--muted)">Amount:</span> KSh ${(o.totalAmount||0).toLocaleString()}</div>
+      <div><span style="color:var(--muted)">Receipt:</span> ${o.mpesaReceiptNumber||'—'}</div>
+      <div><span style="color:var(--muted)">Created:</span> ${new Date(o.createdAt).toLocaleString('en-KE')}</div>
+      ${o.items?`<div style="grid-column:1/-1"><span style="color:var(--muted)">Items:</span> ${o.items.map(i=>i.name).join(', ')}</div>`:''}
+    </div>
+  </div>`;
+}
+
+// ── ONBOARDING ────────────────────────────────────────
+function onboardBusiness(){
+  const name = document.getElementById('ob-name').value.trim();
+  const type = document.getElementById('ob-type').value;
+  const phone = document.getElementById('ob-phone').value.trim();
+  const email = document.getElementById('ob-email').value.trim();
+  const paybill = document.getElementById('ob-paybill').value.trim();
+  const res = document.getElementById('ob-result');
+
+  if(!name){ res.style.color='var(--red)'; res.textContent='Business name is required.'; res.style.display='block'; return; }
+
+  const id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') + '-' + Date.now().toString().slice(-4);
+  const prefix = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3);
+
+  customBusinesses[id] = {
+    id, name, type, icon: '🏢', color: '#8b5cf6', prefix,
+    products: ['Product A','Product B','Product C','Product D','Product E'],
+    priceRange: [500, 10000]
+  };
+
+  // Add to select
+  const select = document.getElementById('biz-select');
+  const opt = document.createElement('option');
+  opt.value = id; opt.textContent = name;
+  select.appendChild(opt);
+
+  res.style.color = 'var(--green)';
+  res.textContent = `✓ ${name} activated successfully. Business ID: ${id}`;
+  res.style.display = 'block';
+
+  // Clear form
+  ['ob-name','ob-phone','ob-email','ob-paybill'].forEach(f=>document.getElementById(f).value='');
+
+  updateBizList();
+
+  // Auto switch to new business after 1.5s
+  setTimeout(()=>{ switchBusiness(id); showPage('dashboard',null); select.value=id; }, 1500);
+}
+
+function updateBizList(){
+  const all = {...BUSINESSES, ...customBusinesses};
+  const el = document.getElementById('biz-list');
+  el.innerHTML = Object.values(all).map(b=>`
+    <div class="biz-card ${b.id===currentBiz?'active-biz':''}" onclick="switchBusiness('${b.id}');document.getElementById('biz-select').value='${b.id}'">
+      <div class="biz-icon" style="background:${b.color}22">${b.icon}</div>
+      <div>
+        <div class="biz-name">${b.name}</div>
+        <div class="biz-type">${b.type}</div>
+      </div>
+      <div class="biz-check">✓</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  POS MODULE — Sales Terminal
+//  Upgrade #3: Vendor-Driven M-Pesa POS
+// ══════════════════════════════════════════════════════
+
+const POS_INVENTORY = [
+  {id:'p01', name:'Cement 50kg',            price:780,  icon:'🏗️', unit:'bag'},
+  {id:'p02', name:'Roofing Sheets (28g)',   price:1200, icon:'🏠', unit:'sheet'},
+  {id:'p03', name:'Nails 3 inch',           price:180,  icon:'🔩', unit:'kg'},
+  {id:'p04', name:'Paint 4L (Dulux)',       price:2400, icon:'🎨', unit:'tin'},
+  {id:'p05', name:'PVC Pipe 1 inch',        price:250,  icon:'🔧', unit:'length'},
+  {id:'p06', name:'Iron Sheets (30g)',      price:950,  icon:'📦', unit:'sheet'},
+  {id:'p07', name:'Wheelbarrow',            price:6500, icon:'🛺', unit:'piece'},
+  {id:'p08', name:'Spade',                  price:600,  icon:'⛏️',  unit:'piece'},
+  {id:'p09', name:'Hammer',                 price:450,  icon:'🔨', unit:'piece'},
+  {id:'p10', name:'Industrial Glue',        price:300,  icon:'🧴', unit:'tube'},
+  {id:'p11', name:'Steel Bars 12mm',        price:890,  icon:'🔗', unit:'piece'},
+  {id:'p12', name:'Wire Mesh Roll',         price:3200, icon:'🕸️',  unit:'roll'},
+];
+
+let posCart = {};        // { itemId: quantity }
+let posPayTimer = null;
+let posCurrentOrderId = null;
+const POS_TX_KEY = 'duka_pos_transactions';
+
+// ── INVENTORY ─────────────────────────────────────────
+function initPOS(){
+  filterPOS('');
+  renderCart();
+  renderPosTxHistory();
+}
+
+function filterPOS(query){
+  const q = query.toLowerCase();
+  const filtered = q ? POS_INVENTORY.filter(i => i.name.toLowerCase().includes(q)) : POS_INVENTORY;
+  const grid = document.getElementById('pos-grid');
+  grid.innerHTML = filtered.map(item => {
+    const qty = posCart[item.id] || 0;
+    return `<div class="pos-item-card ${qty>0?'in-cart':''}" onclick="posAddItem('${item.id}')" id="pos-card-${item.id}">
+      ${qty>0?`<div class="pos-in-cart-badge">${qty}</div>`:''}
+      <div style="font-size:22px;margin-bottom:5px">${item.icon}</div>
+      <div class="pos-item-name">${item.name}</div>
+      <div class="pos-item-price">KSh ${item.price.toLocaleString()}</div>
+      <div class="pos-item-unit">per ${item.unit}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── CART ──────────────────────────────────────────────
+function posAddItem(id){
+  posCart[id] = (posCart[id] || 0) + 1;
+  renderCart();
+  filterPOS(document.getElementById('pos-search').value);
+}
+
+function posSetQty(id, qty){
+  if(qty <= 0){ delete posCart[id]; }
+  else { posCart[id] = qty; }
+  renderCart();
+  filterPOS(document.getElementById('pos-search').value);
+}
+
+function clearCart(){
+  posCart = {};
+  renderCart();
+  filterPOS(document.getElementById('pos-search').value);
+  resetPayPanel();
+}
+
+function renderCart(){
+  const ids = Object.keys(posCart);
+  const countEl = document.getElementById('cart-count');
+  const itemsEl = document.getElementById('cart-items');
+
+  if(!ids.length){
+    countEl.textContent = '';
+    itemsEl.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div>Cart is empty.<br>Add products from the catalog.</div>`;
+    updateCartTotals(0);
+    return;
+  }
+
+  countEl.textContent = `(${ids.length} item${ids.length!==1?'s':''})`;
+  let subtotal = 0;
+  itemsEl.innerHTML = ids.map(id => {
+    const item = POS_INVENTORY.find(i=>i.id===id);
+    if(!item) return '';
+    const qty = posCart[id];
+    const lineTotal = item.price * qty;
+    subtotal += lineTotal;
+    return `<div class="cart-row">
+      <span style="font-size:14px;flex-shrink:0">${item.icon}</span>
+      <span class="cart-row-name" title="${item.name}">${item.name}</span>
+      <div class="cart-qty-ctrl">
+        <button class="qty-btn" onclick="posSetQty('${id}',${qty-1})">−</button>
+        <span class="qty-num">${qty}</span>
+        <button class="qty-btn" onclick="posSetQty('${id}',${qty+1})">+</button>
+      </div>
+      <span class="cart-row-price">KSh ${lineTotal.toLocaleString()}</span>
+      <button class="cart-row-remove" onclick="posSetQty('${id}',0)" title="Remove">×</button>
+    </div>`;
+  }).join('');
+
+  updateCartTotals(subtotal);
+}
+
+function updateCartTotals(subtotal){
+  const vat = Math.round(subtotal * 0.16);
+  const total = subtotal + vat;
+  document.getElementById('cart-subtotal').textContent = 'KSh ' + subtotal.toLocaleString();
+  document.getElementById('cart-vat').textContent = 'KSh ' + vat.toLocaleString();
+  document.getElementById('cart-total').textContent = 'KSh ' + total.toLocaleString();
+}
+
+function getCartTotal(){
+  let sub = 0;
+  Object.keys(posCart).forEach(id=>{
+    const item = POS_INVENTORY.find(i=>i.id===id);
+    if(item) sub += item.price * posCart[id];
+  });
+  return { subtotal: sub, vat: Math.round(sub*0.16), total: sub + Math.round(sub*0.16) };
+}
+
+// ── PAYMENT ───────────────────────────────────────────
+async function posPay(){
+  const phone = document.getElementById('pos-phone').value.trim();
+  const ids = Object.keys(posCart);
+  clearPayError();
+
+  if(!ids.length){ showPayError('Add items to cart first.'); return; }
+  if(!phone.match(/^254[0-9]{9}$/)){ showPayError('Phone must be 12 digits starting with 254'); return; }
+
+  const {total} = getCartTotal();
+  const items = ids.map(id=>{
+    const item = POS_INVENTORY.find(i=>i.id===id);
+    return {name:item.name, quantity:posCart[id], price:item.price};
+  });
+
+  // Lock UI
+  setPosPayLocked(true);
+  showPayStatusBlock();
+  setPSStep(1,'active','Creating order…');
+
+  const biz = getBiz(currentBiz);
+  const fakeOrderId = `${biz.prefix}-POS-${Date.now().toString().slice(-8)}`;
+  posCurrentOrderId = fakeOrderId;
+
+  if(demoMode){
+    // DEMO simulation
+    await sleep(800);
+    setPSStep(1,'done','Order created'); setPSStep(2,'active','Sending STK Push…');
+    await sleep(1000);
+    setPSStep(2,'done','STK Push sent'); setPSStep(3,'active','Waiting for PIN…');
+    document.getElementById('pos-pay-note').textContent = 'Customer is entering M-Pesa PIN…';
+    await sleep(2500 + Math.random()*1500);
+    setPSStep(3,'done','PIN entered'); setPSStep(4,'active','Confirming…');
+    await sleep(800);
+    setPSStep(4,'done','Payment confirmed ✓');
+    const receipt = genFakeReceipt();
+    posConfirmSale(fakeOrderId, phone, total, items, receipt);
+    return;
+  }
+
+  // LIVE mode
+  try{
+    setPSStep(1,'active','Creating order…');
+    const coRes = await fetch(API+'/checkout',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({phone, items}),
+      signal: AbortSignal.timeout(65000)
+    });
+    const coData = await coRes.json();
+    if(!coData.success) throw new Error(coData.message);
+    const orderId = coData.data.orderId;
+    posCurrentOrderId = orderId;
+
+    setPSStep(1,'done','Order created'); setPSStep(2,'active','Sending STK Push…');
+    const stkRes = await fetch(API+'/stkpush',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orderId, phone}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const stkData = await stkRes.json();
+    if(!stkData.success) throw new Error(stkData.message);
+
+    setPSStep(2,'done','STK Push sent'); setPSStep(3,'active','Waiting for PIN…');
+    document.getElementById('pos-pay-note').textContent = 'Customer is entering M-Pesa PIN…';
+    startPosPoll(orderId, phone, total, items);
+  } catch(err){
+    posPayFailed(err.message || 'Payment initiation failed.');
+  }
+}
+
+function startPosPoll(orderId, phone, total, items){
+  let count = 0;
+  clearInterval(posPayTimer);
+  posPayTimer = setInterval(async()=>{
+    count++;
+    try{
+      const r = await fetch(API+'/order/'+orderId);
+      const data = await r.json();
+      if(!data.success) return;
+      const s = data.data?.status;
+      if(s==='PAID'){
+        clearInterval(posPayTimer);
+        setPSStep(3,'done','PIN entered'); setPSStep(4,'done','Payment confirmed ✓');
+        posConfirmSale(orderId, phone, total, items, data.data.mpesaReceiptNumber);
+      } else if(s==='FAILED'||s==='CANCELLED'){
+        clearInterval(posPayTimer);
+        posPayFailed(data.data?.failureReason || 'Payment was not completed.');
+      } else if(count>=24){
+        clearInterval(posPayTimer);
+        posPayFailed('Payment timed out. Please try again.');
+      }
+    }catch{}
+  }, 5000);
+}
+
+function posConfirmSale(orderId, phone, total, items, receipt){
+  const subtotal = Math.round(total / 1.16);
+  const vat = total - subtotal;
+  const tx = {
+    id: orderId,
+    businessId: currentBiz,
+    phone,
+    items,
+    subtotal,
+    vat,
+    total,
+    receipt: receipt || genFakeReceipt(),
+    status: 'PAID',
+    handledBy: currentUser,
+    ts: new Date().toISOString()
+  };
+  savePosTx(tx);
+  saveUnifiedTx(tx);
+
+  // Show in-POS receipt overlay
+  const overlay = document.getElementById('pos-success-overlay');
+  document.getElementById('pos-receipt-detail').innerHTML =
+    items.slice(0,4).map(i=>`<div class="pos-receipt-row"><span>${i.name} ×${i.quantity||1}</span><span>KSh ${((i.price||0)*(i.quantity||1)).toLocaleString()}</span></div>`).join('') +
+    (items.length>4?`<div class="pos-receipt-row"><span>…+${items.length-4} more items</span><span></span></div>`:'') +
+    `<div class="pos-receipt-row"><span>Receipt</span><span style="font-family:'DM Mono',monospace;font-size:10px">${tx.receipt}</span></div>
+     <div class="pos-receipt-row"><span>TOTAL PAID</span><span class="pos-receipt-total">KSh ${total.toLocaleString()}</span></div>`;
+  overlay.className = 'pos-success show';
+
+  // Auto-show printable receipt after 1s
+  setTimeout(()=>{ showReceipt(tx); }, 1000);
+
+  renderPosTxHistory();
+}
+
+function posPayFailed(reason){
+  setPSStep(3,'fail','Payment failed'); setPSStep(4,'fail', reason || 'Failed');
+  setPosPayLocked(false);
+  showPayError(reason || 'Payment failed. Try again.');
+  document.getElementById('pos-cancel-btn').style.display='none';
+  document.getElementById('pos-pay-btn').style.display='flex';
+}
+
+function posCancelPayment(){
+  clearInterval(posPayTimer);
+  setPosPayLocked(false);
+  resetPayPanel();
+  document.getElementById('pay-status-block').style.display='none';
+}
+
+function posNewSale(){
+  document.getElementById('pos-success-overlay').className = 'pos-success';
+  posCart = {};
+  posCurrentOrderId = null;
+  renderCart();
+  filterPOS('');
+  resetPayPanel();
+  document.getElementById('pay-status-block').style.display='none';
+}
+
+// ── PAYMENT UI HELPERS ────────────────────────────────
+function setPosPayLocked(locked){
+  document.getElementById('pos-phone').disabled = locked;
+  document.getElementById('pos-pay-btn').disabled = locked;
+  document.getElementById('pos-pay-btn').style.display = locked ? 'none' : 'flex';
+  document.getElementById('pos-cancel-btn').style.display = locked ? 'flex' : 'none';
+  document.getElementById('pos-pay-text').textContent = 'Send M-Pesa STK Push';
+}
+
+function showPayStatusBlock(){
+  document.getElementById('pay-status-block').style.display='block';
+  ['ps1','ps2','ps3','ps4'].forEach(id=>{
+    document.getElementById(id).className='psdot';
+    document.getElementById(id+'-lbl').className='ps-label pending';
+  });
+}
+
+function setPSStep(n, state, label){
+  const dot = document.getElementById('ps'+n);
+  const lbl = document.getElementById('ps'+n+'-lbl');
+  dot.className = 'psdot ' + (state==='done'?'done':state==='active'?'active':state==='fail'?'fail':'');
+  lbl.className = 'ps-label ' + state;
+  lbl.textContent = label;
+}
+
+function resetPayPanel(){
+  clearPayError();
+  document.getElementById('pos-phone').disabled = false;
+  document.getElementById('pos-pay-btn').disabled = false;
+  document.getElementById('pos-pay-btn').style.display = 'flex';
+  document.getElementById('pos-cancel-btn').style.display = 'none';
+  document.getElementById('pos-pay-note').textContent = 'Enter customer phone number to proceed';
+  clearInterval(posPayTimer);
+}
+
+function showPayError(msg){ document.getElementById('pay-error').textContent = '⚠ '+msg; }
+function clearPayError(){ document.getElementById('pay-error').textContent = ''; }
+
+// ── TRANSACTION PERSISTENCE ───────────────────────────
+function savePosTx(tx){
+  try{
+    const raw = localStorage.getItem(POS_TX_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift(tx);
+    // Keep last 200 records
+    localStorage.setItem(POS_TX_KEY, JSON.stringify(list.slice(0,200)));
+  }catch(e){ console.warn('TX save failed:', e); }
+}
+
+function loadPosTx(){
+  try{
+    const raw = localStorage.getItem(POS_TX_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch{ return []; }
+}
+
+function renderPosTxHistory(){
+  const txs = loadPosTx().filter(t => t.businessId === currentBiz);
+  const empty = document.getElementById('pos-history-empty');
+  const tbody = document.getElementById('pos-tx-tbody');
+  const count = document.getElementById('pos-tx-count');
+
+  count.textContent = txs.length + ' record' + (txs.length!==1?'s':'');
+
+  if(!txs.length){
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Today filter
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayTxs = txs.filter(t => new Date(t.ts) >= todayStart);
+  count.textContent = todayTxs.length + ' today';
+
+  tbody.innerHTML = (todayTxs.length ? todayTxs : txs).slice(0,30).map(t=>{
+    const itemSummary = t.items.slice(0,2).map(i=>i.name).join(', ') + (t.items.length>2?` +${t.items.length-2}`:'');
+    const bc = t.status==='PAID'?'badge-paid':'badge-failed';
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${t.id.slice(-12)}</td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemSummary}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${t.phone}</td>
+      <td style="font-weight:600;color:var(--green)">KSh ${t.total.toLocaleString()}</td>
+      <td><span class="badge ${bc}">${t.status}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${t.receipt||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(t.ts).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  UPGRADE: MULTI-USER + RECEIPT + REPORTS + CREDIBILITY
+//  M-Pesa Duka System — MSRS v3
+// ══════════════════════════════════════════════════════
+
+let currentUser = 'Cashier';
+const BIZ_PROFILE_KEY = 'duka_biz_profile';
+const DUKA_TX_KEY = 'duka_all_transactions';
+
+// ── BUSINESS PROFILE ──────────────────────────────────
+function getBizProfile(){
+  try{
+    const raw = localStorage.getItem(BIZ_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch{ return null; }
+}
+
+function saveBizProfile(p){
+  try{ localStorage.setItem(BIZ_PROFILE_KEY, JSON.stringify(p)); }catch{}
+}
+
+function getActiveBizName(){
+  const profile = getBizProfile();
+  if(profile && profile.name) return profile.name;
+  return getBiz(currentBiz).name;
+}
+
+// ── UNIFIED TRANSACTION STORE ─────────────────────────
+// Stores ALL transactions (POS + checkout) in one place for reports
+function saveUnifiedTx(tx){
+  try{
+    const raw = localStorage.getItem(DUKA_TX_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    // Avoid duplicates
+    if(!list.find(t=>t.id===tx.id)){
+      list.unshift(tx);
+      localStorage.setItem(DUKA_TX_KEY, JSON.stringify(list.slice(0,500)));
+    }
+  }catch(e){ console.warn('TX store failed:', e); }
+}
+
+function loadUnifiedTx(){
+  try{
+    const raw = localStorage.getItem(DUKA_TX_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch{ return []; }
+}
+
+// ── RECEIPT SYSTEM ────────────────────────────────────
+function showReceipt(tx){
+  const biz = getBiz(tx.businessId || currentBiz);
+  const profile = getBizProfile();
+  const bizName = (profile && profile.name) || biz.name;
+  const bizLocation = (profile && profile.location) || 'Kenya';
+  const bizPhone = (profile && profile.phone) || '';
+
+  const subtotal = tx.subtotal || Math.round(tx.total / 1.16);
+  const vat = tx.vat || (tx.total - subtotal);
+  const now = new Date(tx.ts || Date.now());
+  const dateStr = now.toLocaleDateString('en-KE',{dateStyle:'medium'});
+  const timeStr = now.toLocaleTimeString('en-KE',{timeStyle:'short'});
+
+  const itemRows = (tx.items||[]).map(i=>`
+    <div class="receipt-item-row">
+      <span class="receipt-item-name">${i.name}</span>
+      <span class="receipt-item-qty">×${i.quantity||1}</span>
+      <span class="receipt-item-price">KSh ${((i.price||0)*(i.quantity||1)).toLocaleString()}</span>
+    </div>`).join('');
+
+  document.getElementById('receipt-body').innerHTML = `
+    <div class="receipt-header">
+      <div class="receipt-biz-name">${bizName}</div>
+      <div class="receipt-biz-sub">${bizLocation}</div>
+      ${bizPhone?`<div class="receipt-biz-contact">Tel: ${bizPhone}</div>`:''}
+      <div class="receipt-title">OFFICIAL RECEIPT</div>
+    </div>
+    <div class="receipt-meta">
+      <div class="receipt-meta-row"><span>Receipt No.</span><strong>${tx.receipt||tx.id}</strong></div>
+      <div class="receipt-meta-row"><span>Order ID</span><strong>${tx.id}</strong></div>
+      <div class="receipt-meta-row"><span>Date</span><strong>${dateStr}</strong></div>
+      <div class="receipt-meta-row"><span>Time</span><strong>${timeStr}</strong></div>
+      <div class="receipt-meta-row"><span>Customer</span><strong>${tx.phone}</strong></div>
+      ${tx.handledBy?`<div class="receipt-meta-row"><span>Served by</span><strong>${tx.handledBy}</strong></div>`:''}
+    </div>
+    <div class="receipt-items">${itemRows}</div>
+    <div class="receipt-totals">
+      <div class="receipt-total-row"><span>Subtotal</span><span>KSh ${subtotal.toLocaleString()}</span></div>
+      <div class="receipt-total-row"><span>VAT (16%)</span><span>KSh ${vat.toLocaleString()}</span></div>
+      <div class="receipt-total-big"><span>TOTAL</span><span>KSh ${tx.total.toLocaleString()}</span></div>
+    </div>
+    <div class="receipt-paid-stamp">✓ PAID VIA M-PESA</div>
+    <div class="receipt-meta">
+      <div class="receipt-meta-row"><span>M-Pesa Ref</span><strong>${tx.receipt||'—'}</strong></div>
+      <div class="receipt-meta-row"><span>Payment Status</span><strong style="color:#16a34a">CONFIRMED</strong></div>
+    </div>
+    <div class="receipt-footer">
+      Thank you for shopping at ${bizName}<br>
+      ${bizPhone?`${bizPhone} · `:''}${bizLocation}<br><br>
+      Goods once sold are not returnable without receipt
+    </div>
+    <div class="receipt-etims">
+      This receipt is structured in alignment with KRA eTIMS invoicing standards.<br>
+      Invoice Ref: ${tx.id} · VAT Reg: Pending · System: M-Pesa Duka v3
+    </div>`;
+
+  document.getElementById('receipt-modal').className = 'receipt-modal show';
+}
+
+function closeReceipt(){ document.getElementById('receipt-modal').className = 'receipt-modal'; }
+function printReceipt(){ window.print(); }
+
+// ── REPORTS ───────────────────────────────────────────
+function renderReports(){
+  const dateF = document.getElementById('rpt-date-filter').value;
+  const statusF = document.getElementById('rpt-status-filter').value;
+  const userF = document.getElementById('rpt-user-filter').value;
+
+  const all = loadUnifiedTx().filter(t => t.businessId === currentBiz);
+
+  // Date filter
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+  const weekStart = new Date(now); weekStart.setDate(now.getDate()-7); weekStart.setHours(0,0,0,0);
+
+  let filtered = all;
+  if(dateF==='today') filtered = all.filter(t=>new Date(t.ts)>=todayStart);
+  else if(dateF==='week') filtered = all.filter(t=>new Date(t.ts)>=weekStart);
+  if(statusF) filtered = filtered.filter(t=>t.status===statusF);
+  if(userF) filtered = filtered.filter(t=>t.handledBy===userF);
+
+  // Stats
+  const paid = filtered.filter(t=>t.status==='PAID');
+  const failed = filtered.filter(t=>t.status==='FAILED'||t.status==='CANCELLED');
+  const revenue = paid.reduce((s,t)=>s+t.total,0);
+  const rate = filtered.length ? Math.round(paid.length/filtered.length*100) : 0;
+
+  document.getElementById('rpt-revenue').textContent = 'KSh '+revenue.toLocaleString();
+  document.getElementById('rpt-total').textContent = filtered.length;
+  document.getElementById('rpt-paid').textContent = paid.length;
+  document.getElementById('rpt-rate').textContent = rate+'% success rate';
+  document.getElementById('rpt-failed').textContent = failed.length;
+  document.getElementById('rpt-log-sub').textContent = filtered.length+' records';
+
+  // Populate user filter
+  const users = [...new Set(all.map(t=>t.handledBy).filter(Boolean))];
+  const uSel = document.getElementById('rpt-user-filter');
+  const curUser = uSel.value;
+  uSel.innerHTML = '<option value="">All Users</option>' + users.map(u=>`<option value="${u}" ${u===curUser?'selected':''}>${u}</option>`).join('');
+
+  // Table
+  const tbody = document.getElementById('rpt-tbody');
+  tbody.innerHTML = filtered.slice(0,100).map(t=>{
+    const bc={PAID:'badge-paid',PENDING:'badge-pending',FAILED:'badge-failed',PROCESSING:'badge-proc'}[t.status]||'badge-pending';
+    const items = (t.items||[]).slice(0,2).map(i=>i.name).join(', ')+(t.items&&t.items.length>2?` +${t.items.length-2}`:'');
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${(t.id||'').slice(-14)}</td>
+      <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${items||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${t.phone||'—'}</td>
+      <td style="font-weight:600;color:var(--green)">KSh ${(t.total||0).toLocaleString()}</td>
+      <td><span class="badge ${bc}">${t.status}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${t.handledBy||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${t.receipt||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${new Date(t.ts||Date.now()).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportCSV(){
+  const all = loadUnifiedTx().filter(t=>t.businessId===currentBiz);
+  const rows = [['ID','Items','Phone','Total','Status','Handled By','Receipt','Date']];
+  all.forEach(t=>{
+    const items = (t.items||[]).map(i=>`${i.name} x${i.quantity||1}`).join('; ');
+    rows.push([t.id,items,t.phone,t.total,t.status,t.handledBy||'',t.receipt||'',new Date(t.ts||Date.now()).toLocaleString('en-KE')]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `duka-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── BUSINESS PROFILE FORM ────────────────────────────
+function saveBizProfileForm(){
+  const profile = {
+    name: document.getElementById('profile-name').value.trim(),
+    location: document.getElementById('profile-location').value.trim(),
+    phone: document.getElementById('profile-phone').value.trim(),
+    email: document.getElementById('profile-email').value.trim()
+  };
+  if(!profile.name){ return; }
+  saveBizProfile(profile);
+  // Update sidebar logo name
+  document.querySelector('.logo-name').textContent = profile.name;
+  const saved = document.getElementById('profile-saved');
+  saved.style.display = 'block';
+  setTimeout(()=>{ saved.style.display='none'; }, 3000);
+}
+
+function loadBizProfileForm(){
+  const p = getBizProfile();
+  if(!p) return;
+  document.getElementById('profile-name').value = p.name || '';
+  document.getElementById('profile-location').value = p.location || '';
+  document.getElementById('profile-phone').value = p.phone || '';
+  document.getElementById('profile-email').value = p.email || '';
+}
+
+// ── UTILITIES ─────────────────────────────────────────
+function timeAgo(iso){
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff/60000);
+  if(m<1) return 'just now';
+  if(m<60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if(h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+// ══════════════════════════════════════════════════════
+//  ACCESS GATE — Duka v1.0
+//  Upgrade #2: Controlled Access Layer
+// ══════════════════════════════════════════════════════
+
+// Access codes → context mapping
+const ACCESS_CODES = {
+  'DEMO':   { type: 'demo',  biz: null,       label: 'Demo Access' },
+  'SYLMAR': { type: 'live',  biz: 'hardware', label: 'Sylmar Hardware' },
+  'ELEC':   { type: 'demo',  biz: 'electronics', label: 'Electronics Demo' },
+  'CARE':   { type: 'demo',  biz: 'pharmacy', label: 'CityCare Pharmacy' },
+};
+
+const SESSION_KEY = 'duka_session_v1';
+
+// ── SESSION MANAGEMENT ────────────────────────────────
+function getSession(){
+  try{
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch{ return null; }
+}
+
+function setSession(data){
+  try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify({...data, ts: Date.now()})); }
+  catch(e){ console.warn('Session storage unavailable:', e); }
+}
+
+function clearSession(){
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch{}
+}
+
+// ── GATE LOGIC ────────────────────────────────────────
+function submitGate(){
+  const raw = document.getElementById('gate-code').value.trim().toUpperCase();
+  const userName = document.getElementById('gate-user').value.trim() || 'Cashier';
+  const btn = document.getElementById('gate-btn');
+  const ctx = ACCESS_CODES[raw];
+
+  if(!raw){ showGateError('Please enter an access code.'); return; }
+  if(!ctx){ showGateError('Invalid access code. Try again.'); shakeInput(); return; }
+
+  btn.disabled = true;
+  document.getElementById('gate-btn-text').textContent = 'Verifying…';
+
+  setTimeout(()=>{
+    btn.disabled = false;
+    document.getElementById('gate-btn-text').textContent = 'Enter System';
+    currentUser = userName;
+
+    if(ctx.type === 'demo' && ctx.biz === null){
+      showContextSelector();
+    } else {
+      const isDemoCtx = ctx.type === 'demo';
+      setSession({ code: raw, biz: ctx.biz, demo: isDemoCtx, label: ctx.label, user: userName });
+      launchDashboard(ctx.biz, isDemoCtx, userName);
+    }
+  }, 600);
+}
+
+function showContextSelector(){
+  document.getElementById('access-gate').style.display = 'none';
+  document.getElementById('ctx-select-screen').style.display = 'flex';
+}
+
+function enterDemo(bizId){
+  const biz = getBiz(bizId);
+  const userName = document.getElementById('gate-user').value.trim() || 'Cashier';
+  setSession({ code: 'DEMO', biz: bizId, demo: true, label: biz.name + ' (Demo)', user: userName });
+  document.getElementById('ctx-select-screen').style.display = 'none';
+  launchDashboard(bizId, true, userName);
+}
+
+function exitToGate(){
+  document.getElementById('ctx-select-screen').style.display = 'none';
+  document.getElementById('access-gate').style.display = 'flex';
+  document.getElementById('gate-code').value = '';
+}
+
+function launchDashboard(bizId, isDemoMode, userName){
+  if(userName) currentUser = userName;
+
+  // Hide gate
+  document.getElementById('access-gate').style.display = 'none';
+  document.getElementById('ctx-select-screen').style.display = 'none';
+
+  // Apply context
+  currentBiz = bizId;
+  demoMode = isDemoMode;
+
+  // Update demo mode UI
+  if(isDemoMode){
+    const track = document.getElementById('demo-track');
+    track.className = 'toggle-track on';
+    document.getElementById('demo-banner').className = 'demo-banner show';
+    document.getElementById('demo-pill').style.display = 'inline-flex';
+    document.getElementById('mode-label').textContent = 'Demo Mode';
+    document.getElementById('system-status-badge').className = 'system-status demo';
+    document.getElementById('system-status-badge').textContent = '● DEMO';
+  } else {
+    document.getElementById('system-status-badge').className = 'system-status live';
+    document.getElementById('system-status-badge').textContent = '● LIVE';
+  }
+
+  // Show user chip
+  const chip = document.getElementById('topbar-user-chip');
+  const nameEl = document.getElementById('topbar-user-name');
+  chip.style.display = 'inline-flex';
+  nameEl.textContent = currentUser;
+
+  // Update biz switcher
+  document.getElementById('biz-select').value = bizId;
+  const biz = getBiz(bizId);
+  document.querySelector('.logo-mark').textContent = biz.name.charAt(0);
+  document.querySelector('.logo-mark').style.background = biz.color;
+
+  // Update logo name to business name
+  const profile = getBizProfile();
+  document.querySelector('.logo-name').textContent = (profile && profile.name) || biz.name;
+
+  // Load data and render
+  allOrders = seedOrders(bizId);
+  renderDashboard();
+  renderTransactions();
+  updateBizList();
+
+  updateSessionBadge();
+}
+
+function updateSessionBadge(){
+  const session = getSession();
+  if(!session) return;
+  const biz = getBiz(session.biz);
+  const dot = document.getElementById('sidebar-status');
+  // Already handled by health check — just ensure biz name shown
+}
+
+function switchAccess(){
+  if(confirm('Exit the current session and return to the access screen?')){
+    clearSession();
+    exitToGate();
+    document.getElementById('access-gate').style.display = 'flex';
+    // Reset demo mode
+    demoMode = false;
+    document.getElementById('demo-track').className = 'toggle-track';
+    document.getElementById('demo-banner').className = 'demo-banner';
+    document.getElementById('demo-pill').style.display = 'none';
+    document.getElementById('mode-label').textContent = 'Live Mode';
+  }
+}
+
+function showGateError(msg){
+  const el = document.getElementById('gate-error');
+  el.innerHTML = '⚠ ' + msg;
+}
+function clearGateError(){
+  document.getElementById('gate-error').innerHTML = '';
+  document.getElementById('gate-code').classList.remove('error');
+}
+function shakeInput(){
+  const inp = document.getElementById('gate-code');
+  inp.classList.add('error');
+  setTimeout(()=>inp.classList.remove('error'), 500);
+}
+
+// ── BOOT SEQUENCE ─────────────────────────────────────
+(function boot(){
+  const session = getSession();
+  if(session && session.biz && ACCESS_CODES[session.code]){
+    // Valid session — restore user and skip gate
+    if(session.user) currentUser = session.user;
+    launchDashboard(session.biz, session.demo || false, session.user || 'Cashier');
+  } else {
+    // No session — show gate, hide shell content
+    document.getElementById('access-gate').style.display = 'flex';
+    // Pre-init data silently in background
+    allOrders = seedOrders('hardware');
+  }
+})();
+
+</script>
+</body>
+</html>
